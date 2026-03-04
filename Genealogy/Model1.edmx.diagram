@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="3d4b163387ee4102a5bb146fa75e2ce8" Name="Diagram1">
+        <EntityTypeShape EntityType="GenealogyDBModel.FamilyTrees" Width="1.5" PointX="5.25" PointY="7.5" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.Genders" Width="1.5" PointX="5.25" PointY="10.875" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.MediaFiles" Width="1.5" PointX="5.25" PointY="3.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.MediaLinks" Width="1.5" PointX="9.75" PointY="6" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.MediaTypes" Width="1.5" PointX="3" PointY="3.875" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.Persons" Width="1.5" PointX="7.5" PointY="5.875" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.Relationships" Width="1.5" PointX="9.75" PointY="10.25" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.Stories" Width="1.5" PointX="12.75" PointY="7.125" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.sysdiagrams" Width="1.5" PointX="0.75" PointY="0.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.UserRoles" Width="1.5" PointX="0.75" PointY="7.875" IsExpanded="true" />
+        <EntityTypeShape EntityType="GenealogyDBModel.Users" Width="1.5" PointX="3" PointY="6.75" IsExpanded="true" />
+        <AssociationConnector Association="GenealogyDBModel.FK_FamilyTrees_Creator" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Persons_Tree" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Persons_Gender" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_MediaFiles_Type" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_MediaFiles_Uploader" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_MediaLinks_File" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_MediaLinks_Person" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_MediaLinks_Story" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Persons_Creator" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Relationships_Person1" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Relationships_Person2" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Stories_Person" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Users_Person" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Relationships_Creator" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Stories_Creator" ManuallyRouted="false" />
+        <AssociationConnector Association="GenealogyDBModel.FK_Users_Role" ManuallyRouted="false" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>
