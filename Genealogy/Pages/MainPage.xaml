@@ -3,12 +3,253 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:Genealogy.Pages"
       mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
-      Title="MainPage">
+      d:DesignHeight="800" d:DesignWidth="1200"
+      Title="Главная страница"
+      Background="#F5F0E6"
+      Loaded="Page_Loaded">
 
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="250"/>
+        </Grid.RowDefinitions>
+
+        <!-- ==================== ВЕРХНЕЕ МЕНЮ ==================== -->
+        <Border Grid.Row="0" 
+                Background="#FDF8F0"
+                BorderBrush="#D6C9B8"
+                BorderThickness="0,0,0,1">
+            <Grid Margin="20,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Логотип -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,30,0">
+                    <TextBlock Text="🌳" FontSize="24" Foreground="#8FAA7A"/>
+                    <TextBlock Text="Genealogy" FontSize="18" FontWeight="SemiBold" 
+                               Foreground="#5C4E3D" Margin="5,0,0,0"/>
+                </StackPanel>
+
+                <!-- Навигация -->
+                <Button Grid.Column="1" Content="Главная" IsEnabled="False"/>
+                <Button Grid.Column="2" Content="Мои деревья" Click="MyTreesButton_Click"/>
+                <Button Grid.Column="3" Content="Поиск"  Click="SearchButton_Click"/>
+                <Button Grid.Column="3" Content="Отчеты" Click="ReportsButton_Click" Grid.ColumnSpan="2" Margin="38,0,88,0"/>
+
+                <!-- Профиль -->
+                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                    <TextBlock x:Name="txtUserName"
+                               Text="Имя пользователя"
+                               VerticalAlignment="Center"
+                               Foreground="#5C4E3D"
+                               FontWeight="Medium"
+                               Margin="0,0,15,0"/>
+                    <Button Content="Выйти" 
+                            Click="LogoutButton_Click"
+                            Background="Transparent"
+                            BorderBrush="#D6C9B8"
+                            BorderThickness="1"
+                            Foreground="#8B7E6B"
+                            Padding="10,5"
+                            Cursor="Hand"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ==================== ПАНЕЛЬ ИНСТРУМЕНТОВ ==================== -->
+        <Border Grid.Row="1" 
+                Background="#FDF8F0"
+                BorderBrush="#D6C9B8"
+                BorderThickness="0,0,0,1"
+                Padding="20,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250"/>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Поиск -->
+                <Border Grid.Column="0" 
+                        BorderBrush="#D6C9B8" 
+                        BorderThickness="1"
+                        CornerRadius="5"
+                        Height="35">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="30"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="txtSearch"
+                                 Text="Поиск..."
+                                 Foreground="#8B7E6B"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="10,0"
+                                 GotFocus="txtSearch_GotFocus"
+                                 LostFocus="txtSearch_LostFocus"/>
+                        <Button Grid.Column="1" 
+                                Content="🔍" 
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Click="SearchButton_Click"/>
+                    </Grid>
+                </Border>
+
+                <!-- Фильтр по поколениям -->
+                <ComboBox Grid.Column="1" 
+                          x:Name="cmbFilter"
+                          Margin="10,0,0,0"
+                          Height="35"
+                          Background="White"
+                          BorderBrush="#D6C9B8"
+                          SelectedIndex="0"
+                          SelectionChanged="Filter_Changed">
+                    <ComboBoxItem Content="Все поколения"/>
+                    <ComboBoxItem Content="Поколение 1"/>
+                    <ComboBoxItem Content="Поколение 2"/>
+                    <ComboBoxItem Content="Поколение 3"/>
+                    <ComboBoxItem Content="Поколение 4"/>
+                </ComboBox>
+
+                <!-- Кнопки действий -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="20,0">
+                    <Button x:Name="btnAdd" Content="➕" Width="35" Height="35"
+                            ToolTip="Добавить персону"
+                            Click="AddPersonButton_Click"/>
+                    <Button x:Name="btnEdit" Content="✎" Width="35" Height="35"
+                            ToolTip="Редактировать"
+                            Click="EditPersonButton_Click"/>
+                    <Button x:Name="btnDelete" Content="🗑" Width="35" Height="35"
+                            
+                            ToolTip="Удалить"
+                            Click="DeletePersonButton_Click"/>
+                    <Button x:Name="btnPhoto" Content="📷" Width="35" Height="35"
+                            ToolTip="Добавить фото"
+                            Click="AddPhotoButton_Click"/>
+                    <Button x:Name="btnStory" Content="📖" Width="35" Height="35"
+                            ToolTip="Добавить историю"
+                            Click="AddStoryButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ==================== ОБЛАСТЬ ДЕРЕВА ==================== -->
+        <Border Grid.Row="2" 
+                Background="#FDF8F0"
+                Margin="10"
+                CornerRadius="10"
+                BorderBrush="#D6C9B8"
+                BorderThickness="1">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                          VerticalScrollBarVisibility="Auto">
+                <Canvas x:Name="treeCanvas" 
+                        Width="2000" Height="1500" 
+                        Background="#FDF8F0"
+                        MouseLeftButtonDown="Canvas_MouseLeftButtonDown"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ==================== БОКОВАЯ ПАНЕЛЬ ==================== -->
+        <Border Grid.Row="3" 
+                Background="#FDF8F0"
+                Margin="10"
+                CornerRadius="10"
+                BorderBrush="#D6C9B8"
+                BorderThickness="1"
+                Padding="15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Фото -->
+                <Border Grid.Column="0" 
+                        Width="100" Height="100"
+                        BorderBrush="#D6C9B8"
+                        BorderThickness="1"
+                        CornerRadius="5"
+                        Background="#F5F0E6"
+                        HorizontalAlignment="Left">
+                    <Grid>
+                        <TextBlock x:Name="txtNoPhoto" 
+                                   Text="📷" 
+                                   FontSize="40"
+                                   Foreground="#B7A48B"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Visibility="Visible"/>
+                        <Image x:Name="imgProfile" 
+                               Stretch="UniformToFill"
+                               Visibility="Collapsed"/>
+                    </Grid>
+                </Border>
+
+                <!-- Информация о персоне -->
+                <StackPanel Grid.Column="1" Margin="15,0">
+                    <TextBlock x:Name="txtPersonName" 
+                               Text="Выберите персону"
+                               FontSize="18" FontWeight="SemiBold"
+                               Foreground="#5C4E3D"/>
+
+                    <WrapPanel Margin="0,5">
+                        <TextBlock Text="📅 " Foreground="#8FAA7A"/>
+                        <TextBlock x:Name="txtBirthDate" Text="--" Foreground="#6B5E4A"/>
+                        <TextBlock Text=" - " Foreground="#6B5E4A"/>
+                        <TextBlock x:Name="txtDeathDate" Text="--" Foreground="#6B5E4A"/>
+                    </WrapPanel>
+
+                    <WrapPanel>
+                        <TextBlock x:Name="txtGenderSymbol" Text="👤" Foreground="#8FAA7A"/>
+                        <TextBlock x:Name="txtGender" Text="Не указан" Foreground="#6B5E4A" Margin="2,0,0,0"/>
+                    </WrapPanel>
+
+                    <TextBlock x:Name="txtParents" Text="Родители: --" Margin="0,5"/>
+                    <TextBlock x:Name="txtSpouse" Text="Супруг(а): --"/>
+                    <TextBlock x:Name="txtChildren" Text="Дети: --" Margin="0,5"/>
+                </StackPanel>
+
+                <!-- Кнопки -->
+                <StackPanel Grid.Column="2" 
+                            VerticalAlignment="Center"
+                            Margin="10,0">
+                    <Button x:Name="btnDetails" Content="ПОДРОБНЕЕ" 
+                            Width="120" Height="35"
+                            Background="#8FAA7A"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Margin="0,0,0,10"
+                            Click="DetailsButton_Click"/>
+                    <Button x:Name="btnSideEdit" Content="✎ Редактировать" 
+                            Width="120" Height="30"
+                            Background="Transparent"
+                            BorderBrush="#D6C9B8"
+                            Foreground="#6B5E4A"
+                            BorderThickness="1"
+                            Margin="0,0,0,5"
+                            Click="EditPersonButton_Click"/>
+                    <Button x:Name="btnSideStory" Content="📖 Добавить историю" 
+                            Width="120" Height="30"
+                            Background="Transparent"
+                            BorderBrush="#D6C9B8"
+                            Foreground="#6B5E4A"
+                            BorderThickness="1"
+                            Click="AddStoryButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Page>

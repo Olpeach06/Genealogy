@@ -3,12 +3,253 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:Genealogy.Pages"
       mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
-      Title="RegisterPage">
+      d:DesignHeight="800" d:DesignWidth="800"
+      Title="Регистрация"
+      Background="#F5F0E6">
 
     <Grid>
-        
+        <!-- Декоративный элемент - ветка дерева -->
+        <Border Width="400" Height="400" 
+                Background="#8B7E6B" Opacity="0.05"
+                CornerRadius="200"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"/>
+
+        <!-- Карточка регистрации -->
+        <Border Width="450" 
+                Background="#FDF8F0"
+                CornerRadius="20"
+                Padding="40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                BorderBrush="#B7A48B"
+                BorderThickness="1">
+
+            <!-- Тень -->
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="20" 
+                                  Opacity="0.15" 
+                                  ShadowDepth="5" 
+                                  Color="#5C4E3D"/>
+            </Border.Effect>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="650">
+                <StackPanel>
+                    <!-- Логотип и заголовок -->
+                    <StackPanel HorizontalAlignment="Center" Margin="0,0,0,20">
+                        <Grid Width="70" Height="70" Margin="0,0,0,5">
+                            <Rectangle Width="18" Height="35" 
+                                       Fill="#B7A48B" 
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Bottom"
+                                       RadiusX="4" RadiusY="4"/>
+                            <Ellipse Width="50" Height="50" 
+                                     Fill="#9CAF88" 
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Top"
+                                     Margin="0,0,0,25"/>
+                            <Ellipse Width="38" Height="38" 
+                                     Fill="#AFC09A" 
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Top"
+                                     Margin="0,5,0,30"/>
+                        </Grid>
+
+                        <TextBlock Text="Регистрация" 
+                                   FontSize="24" FontWeight="SemiBold"
+                                   Foreground="#5C4E3D"
+                                   Margin="0,5,0,0"/>
+                        <TextBlock Text="Создание нового аккаунта"
+                                   Foreground="#8B7E6B"
+                                   FontSize="13"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Поля ввода -->
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Логин *" 
+                                   Foreground="#6B5E4A"
+                                   FontSize="12"
+                                   FontWeight="Medium"
+                                   Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtLogin"
+                                 FontSize="14" 
+                                 Padding="12"
+                                 BorderBrush="#B7A48B"
+                                 BorderThickness="0,0,0,1"
+                                 Background="Transparent"
+                                 Foreground="#3A3229">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="BorderBrush" Value="#B7A48B"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsFocused" Value="True">
+                                            <Setter Property="BorderBrush" Value="#8FAA7A"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="BorderBrush" Value="#9CAF88"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Email" 
+                                   Foreground="#6B5E4A"
+                                   FontSize="12"
+                                   FontWeight="Medium"
+                                   Margin="0,0,0,5"/>
+                        <TextBox x:Name="txtEmail"
+                                 FontSize="14" 
+                                 Padding="12"
+                                 BorderBrush="#B7A48B"
+                                 BorderThickness="0,0,0,1"
+                                 Background="Transparent"
+                                 Foreground="#3A3229">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="BorderBrush" Value="#B7A48B"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsFocused" Value="True">
+                                            <Setter Property="BorderBrush" Value="#8FAA7A"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="BorderBrush" Value="#9CAF88"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,15">
+                        <TextBlock Text="Пароль *" 
+                                   Foreground="#6B5E4A"
+                                   FontSize="12"
+                                   FontWeight="Medium"
+                                   Margin="0,0,0,5"/>
+                        <PasswordBox x:Name="txtPassword"
+                                     FontSize="14" 
+                                     Padding="12"
+                                     BorderBrush="#B7A48B"
+                                     BorderThickness="0,0,0,1"
+                                     Background="Transparent"
+                                     Foreground="#3A3229">
+                            <PasswordBox.Style>
+                                <Style TargetType="PasswordBox">
+                                    <Setter Property="BorderBrush" Value="#B7A48B"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsFocused" Value="True">
+                                            <Setter Property="BorderBrush" Value="#8FAA7A"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="BorderBrush" Value="#9CAF88"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </PasswordBox.Style>
+                        </PasswordBox>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="Подтверждение пароля *" 
+                                   Foreground="#6B5E4A"
+                                   FontSize="12"
+                                   FontWeight="Medium"
+                                   Margin="0,0,0,5"/>
+                        <PasswordBox x:Name="txtConfirmPassword"
+                                     FontSize="14" 
+                                     Padding="12"
+                                     BorderBrush="#B7A48B"
+                                     BorderThickness="0,0,0,1"
+                                     Background="Transparent"
+                                     Foreground="#3A3229">
+                            <PasswordBox.Style>
+                                <Style TargetType="PasswordBox">
+                                    <Setter Property="BorderBrush" Value="#B7A48B"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsFocused" Value="True">
+                                            <Setter Property="BorderBrush" Value="#8FAA7A"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="BorderBrush" Value="#9CAF88"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </PasswordBox.Style>
+                        </PasswordBox>
+                    </StackPanel>
+
+                    <!-- Кнопка регистрации -->
+                    <Button Content="ЗАРЕГИСТРИРОВАТЬСЯ" 
+                            Click="RegisterButton_Click"
+                            Background="#8FAA7A"
+                            Foreground="White"
+                            FontSize="14" FontWeight="Bold"
+                            Height="48"
+                            BorderThickness="0"
+                            Margin="0,0,0,15"
+                            Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="border"
+                                                    Background="{TemplateBinding Background}"
+                                                    CornerRadius="8"
+                                                    Padding="10">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="border" Property="Background" Value="#A2BD8C"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="border" Property="Background" Value="#7A9270"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Разделитель -->
+                    <Grid Margin="0,5,0,15">
+                        <Border Height="1" Background="#D6C9B8"/>
+                        <TextBlock Text="или" 
+                                   Background="#FDF8F0"
+                                   Foreground="#8B7E6B"
+                                   Padding="15,0,15,0"
+                                   HorizontalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Ссылка на вход -->
+                    <TextBlock HorizontalAlignment="Center"
+                               Foreground="#6B5E4A"
+                               FontSize="13">
+                        <Hyperlink Click="LoginHyperlink_Click"
+                                   Foreground="#8FAA7A"
+                                   TextDecorations="None"
+                                   FontWeight="Medium">
+                            Уже есть аккаунт? Войти
+                        </Hyperlink>
+                    </TextBlock>
+
+                    <!-- Информация -->
+                    <TextBlock Text="Первый пользователь становится администратором"
+                               Foreground="#B7A48B"
+                               FontSize="11"
+                               HorizontalAlignment="Center"
+                               Margin="0,20,0,5"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
     </Grid>
 </Page>
