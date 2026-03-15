@@ -27,7 +27,6 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -40,13 +39,12 @@
                 </StackPanel>
 
                 <!-- Навигация -->
-                <Button Grid.Column="1" Content="Главная" IsEnabled="False"/>
-                <Button Grid.Column="2" Content="Мои деревья" Click="MyTreesButton_Click"/>
-                <Button Grid.Column="3" Content="Поиск"  Click="SearchButton_Click"/>
-                <Button Grid.Column="3" Content="Отчеты" Click="ReportsButton_Click" Grid.ColumnSpan="2" Margin="38,0,88,0"/>
+                <Button Grid.Column="1" Content="Главная" IsEnabled="False" Margin="5,0"/>
+                <Button Grid.Column="2" Content="Мои деревья" Click="MyTreesButton_Click" Margin="5,0"/>
+                <Button Grid.Column="3" Content="Отчеты" Click="ReportsButton_Click" Margin="5,0"/>
 
                 <!-- Профиль -->
-                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right">
                     <TextBlock x:Name="txtUserName"
                                Text="Имя пользователя"
                                VerticalAlignment="Center"
@@ -89,6 +87,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="30"/>
                         </Grid.ColumnDefinitions>
                         <TextBox x:Name="txtSearch"
                                  Text="Поиск..."
@@ -97,8 +96,23 @@
                                  BorderThickness="0"
                                  Padding="10,0"
                                  GotFocus="txtSearch_GotFocus"
-                                 LostFocus="txtSearch_LostFocus"/>
+                                 LostFocus="txtSearch_LostFocus"
+                                 KeyDown="txtSearch_KeyDown"
+                                 TextChanged="txtSearch_TextChanged"/>
                         <Button Grid.Column="1" 
+                                x:Name="btnClearSearch"
+                                Content="✕" 
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                Width="30"
+                                Visibility="Collapsed"
+                                Click="ClearSearch_Click"
+                                Foreground="#8B7E6B"
+                                FontSize="14"
+                                FontWeight="Bold"/>
+                        <Button Grid.Column="2" 
+                                x:Name="btnSearch"
                                 Content="🔍" 
                                 Background="Transparent"
                                 BorderThickness="0"
@@ -123,24 +137,32 @@
                     <ComboBoxItem Content="Поколение 4"/>
                 </ComboBox>
 
-                <!-- Кнопки действий -->
+                <!-- Кнопки действий (только основные) -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="20,0">
                     <Button x:Name="btnAdd" Content="➕" Width="35" Height="35"
                             ToolTip="Добавить персону"
+                            Background="Transparent"
+                            BorderBrush="#D6C9B8"
+                            BorderThickness="1"
+                            Margin="2"
+                            Cursor="Hand"
                             Click="AddPersonButton_Click"/>
                     <Button x:Name="btnEdit" Content="✎" Width="35" Height="35"
                             ToolTip="Редактировать"
+                            Background="Transparent"
+                            BorderBrush="#D6C9B8"
+                            BorderThickness="1"
+                            Margin="2"
+                            Cursor="Hand"
                             Click="EditPersonButton_Click"/>
                     <Button x:Name="btnDelete" Content="🗑" Width="35" Height="35"
-                            
                             ToolTip="Удалить"
+                            Background="Transparent"
+                            BorderBrush="#D6C9B8"
+                            BorderThickness="1"
+                            Margin="2"
+                            Cursor="Hand"
                             Click="DeletePersonButton_Click"/>
-                    <Button x:Name="btnPhoto" Content="📷" Width="35" Height="35"
-                            ToolTip="Добавить фото"
-                            Click="AddPhotoButton_Click"/>
-                    <Button x:Name="btnStory" Content="📖" Width="35" Height="35"
-                            ToolTip="Добавить историю"
-                            Click="AddStoryButton_Click"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -152,12 +174,15 @@
                 CornerRadius="10"
                 BorderBrush="#D6C9B8"
                 BorderThickness="1">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+            <ScrollViewer x:Name="mainScrollViewer"
+                          HorizontalScrollBarVisibility="Auto" 
                           VerticalScrollBarVisibility="Auto">
                 <Canvas x:Name="treeCanvas" 
                         Width="2000" Height="1500" 
                         Background="#FDF8F0"
-                        MouseLeftButtonDown="Canvas_MouseLeftButtonDown"/>
+                        MouseLeftButtonDown="Canvas_MouseLeftButtonDown"
+                        MouseMove="Canvas_MouseMove"
+                        MouseLeftButtonUp="Canvas_MouseLeftButtonUp"/>
             </ScrollViewer>
         </Border>
 
@@ -173,7 +198,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="120"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- Фото -->
@@ -222,27 +247,26 @@
                     <TextBlock x:Name="txtChildren" Text="Дети: --" Margin="0,5"/>
                 </StackPanel>
 
-                <!-- Кнопки -->
+                <!-- Кнопки действий для выбранной персоны -->
                 <StackPanel Grid.Column="2" 
-                            VerticalAlignment="Center"
-                            Margin="10,0">
+                            VerticalAlignment="Center">
                     <Button x:Name="btnDetails" Content="ПОДРОБНЕЕ" 
-                            Width="120" Height="35"
+                            Width="100" Height="30"
                             Background="#8FAA7A"
                             Foreground="White"
                             BorderThickness="0"
-                            Margin="0,0,0,10"
+                            Margin="0,0,0,5"
                             Click="DetailsButton_Click"/>
                     <Button x:Name="btnSideEdit" Content="✎ Редактировать" 
-                            Width="120" Height="30"
+                            Width="100" Height="30"
                             Background="Transparent"
                             BorderBrush="#D6C9B8"
                             Foreground="#6B5E4A"
                             BorderThickness="1"
                             Margin="0,0,0,5"
                             Click="EditPersonButton_Click"/>
-                    <Button x:Name="btnSideStory" Content="📖 Добавить историю" 
-                            Width="120" Height="30"
+                    <Button x:Name="btnSideStory" Content="📖 История" 
+                            Width="100" Height="30"
                             Background="Transparent"
                             BorderBrush="#D6C9B8"
                             Foreground="#6B5E4A"

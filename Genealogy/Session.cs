@@ -18,6 +18,9 @@ namespace Genealogy.Classes
         public static string FullName { get; set; }
         public static DateTime LoginTime { get; set; }
 
+        // Текущее дерево
+        public static int CurrentTreeId { get; set; } = 1; // ID текущего дерева (по умолчанию 1)
+
         // Режим гостя
         public static bool IsGuest { get; set; } = false;
 
@@ -37,6 +40,7 @@ namespace Genealogy.Classes
             PersonId = null;
             FullName = null;
             LoginTime = DateTime.MinValue;
+            CurrentTreeId = 1;
             IsGuest = false;
         }
     }

@@ -1,0 +1,81 @@
+﻿<Window x:Class="Genealogy.Pages.TreeEditDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Редактирование дерева"
+        Height="550" Width="450"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F0E6"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Border Margin="20" Background="#FDF8F0" CornerRadius="10" Padding="20">
+        <StackPanel>
+            <TextBlock Text="🌳" FontSize="48" Foreground="#8FAA7A" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+            <TextBlock x:Name="txtTitle" Text="СОЗДАНИЕ ДЕРЕВА" 
+                       FontSize="18" FontWeight="Bold"
+                       Foreground="#5C4E3D"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"/>
+
+            <TextBlock Text="Название *" Foreground="#6B5E4A" Margin="0,5,0,2"/>
+            <TextBox x:Name="txtName" 
+                     Padding="8"
+                     BorderBrush="#B7A48B"
+                     BorderThickness="0,0,0,1"
+                     Background="Transparent"
+                     Margin="0,0,0,10"
+                     TextChanged="ValidateFields"/>
+
+            <TextBlock Text="Описание" Foreground="#6B5E4A" Margin="0,5,0,2"/>
+            <TextBox x:Name="txtDescription" 
+                     Padding="8"
+                     BorderBrush="#B7A48B"
+                     BorderThickness="0,0,0,1"
+                     Background="Transparent"
+                     Margin="0,0,0,15"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"
+                     Height="60"/>
+
+            <CheckBox x:Name="chkIsPublic" 
+                      Content="Публичное дерево (доступно для просмотра всем)"
+                      Foreground="#6B5E4A"
+                      Margin="0,0,0,20"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" 
+                        Content="ОТМЕНА" 
+                        Width="100" Height="35"
+                        Background="Transparent"
+                        BorderBrush="#D6C9B8"
+                        Foreground="#6B5E4A"
+                        BorderThickness="1"
+                        Margin="0,0,10,0"
+                        HorizontalAlignment="Right"
+                        Click="CancelButton_Click"/>
+
+                <Button Grid.Column="1" 
+                        x:Name="btnSave"
+                        Content="СОХРАНИТЬ" 
+                        Width="100" Height="35"
+                        Background="#8FAA7A"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Margin="10,0,0,0"
+                        HorizontalAlignment="Left"
+                        IsEnabled="False"
+                        Click="SaveButton_Click"/>
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>
