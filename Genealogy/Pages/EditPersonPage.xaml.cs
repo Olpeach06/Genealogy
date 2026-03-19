@@ -20,7 +20,7 @@ namespace Genealogy.Pages
     public partial class EditPersonPage : Page
     {
         private int? editPersonId = null;
-        private int currentTreeId = 1;
+        private int currentTreeId = 1; // Значение по умолчанию, будет заменено в Page_Loaded
         private string selectedPhotoPath = null;
         private List<PersonComboItem> allPersons = new List<PersonComboItem>();
 
@@ -45,6 +45,35 @@ namespace Genealogy.Pages
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
+            // Загружаем текущее дерево из сессии
+            if (Session.CurrentTreeId > 0)
+            {
+                currentTreeId = Session.CurrentTreeId;
+            }
+            else
+            {
+                // Если нет текущего дерева, пробуем найти первое доступное
+                using (var context = new GenealogyDBEntities())
+                {
+                    var firstTree = context.FamilyTrees
+                        .Where(t => t.CreatedByUserId == Session.UserId)
+                        .FirstOrDefault();
+
+                    if (firstTree != null)
+                    {
+                        currentTreeId = firstTree.Id;
+                        Session.CurrentTreeId = firstTree.Id;
+                    }
+                    else
+                    {
+                        MessageBox.Show("У вас нет доступных деревьев. Сначала создайте дерево.",
+                            "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        NavigationService.GoBack();
+                        return;
+                    }
+                }
+            }
+
             LoadPersonsForCombo();
 
             if (editPersonId.HasValue)
@@ -107,6 +136,9 @@ namespace Genealogy.Pages
                         return;
                     }
 
+                    // Устанавливаем текущее дерево из данных персоны (на случай, если редактируем персону из другого дерева)
+                    currentTreeId = person.TreeId;
+
                     // Заполняем основные поля
                     txtLastName.Text = person.LastName;
                     txtFirstName.Text = person.FirstName;
@@ -134,6 +166,9 @@ namespace Genealogy.Pages
 
                     // Биография
                     txtBiography.Text = person.Biography;
+
+                    // Перезагружаем список персон для текущего дерева
+                    LoadPersonsForCombo();
 
                     // Загрузка связей (родители и супруг)
                     LoadPersonRelationships(personId, context);
@@ -295,7 +330,7 @@ namespace Genealogy.Pages
                         // Добавление новой персоны
                         person = new Persons
                         {
-                            TreeId = currentTreeId,
+                            TreeId = currentTreeId, // Используем текущее дерево из сессии
                             CreatedByUserId = Session.UserId,
                             CreatedAt = DateTime.Now
                         };

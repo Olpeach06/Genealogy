@@ -4,195 +4,230 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       mc:Ignorable="d" 
-      d:DesignHeight="900" d:DesignWidth="900"
+      d:DesignHeight="650" d:DesignWidth="800"
       Title="Добавление истории"
       Background="#F5F0E6"
-      Loaded="Page_Loaded">
+      Loaded="Page_Loaded"
+      WindowWidth="800" WindowHeight="650">
 
     <Grid>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="650">
-            <Border Width="650"
-                    Background="#FDF8F0"
-                    CornerRadius="20"
-                    Padding="30"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    BorderBrush="#B7A48B"
-                    BorderThickness="1"
-                    Margin="20">
+        <!-- Декоративный элемент -->
+        <Border Width="400" Height="400" 
+                Background="#8B7E6B" Opacity="0.05"
+                CornerRadius="200"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"/>
 
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="20" 
-                                      Opacity="0.15" 
-                                      ShadowDepth="5" 
-                                      Color="#5C4E3D"/>
-                </Border.Effect>
+        <!-- Карточка редактирования -->
+        <Border Width="700" 
+                Background="#FDF8F0"
+                CornerRadius="20"
+                Padding="20"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                BorderBrush="#B7A48B"
+                BorderThickness="1">
 
-                <StackPanel>
-                    <!-- Заголовок -->
-                    <TextBlock x:Name="txtPageTitle" 
-                               FontSize="24" FontWeight="SemiBold"
-                               Foreground="#5C4E3D"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,20"/>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="20" 
+                                  Opacity="0.15" 
+                                  ShadowDepth="5" 
+                                  Color="#5C4E3D"/>
+            </Border.Effect>
 
-                    <!-- Информация о персоне -->
-                    <TextBlock x:Name="txtPersonInfo" 
-                               Foreground="#8B7E6B"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,20"/>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                    <!-- Поля истории -->
-                    <TextBlock Text="Заголовок *" Foreground="#6B5E4A" Margin="0,5,0,2"/>
+                <!-- Заголовок -->
+                <TextBlock Grid.Row="0" 
+                           x:Name="txtPageTitle" 
+                           FontSize="22" FontWeight="SemiBold"
+                           Foreground="#5C4E3D"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,5"/>
+
+                <!-- Информация о персоне -->
+                <TextBlock Grid.Row="1" 
+                           x:Name="txtPersonInfo" 
+                           Foreground="#8B7E6B"
+                           HorizontalAlignment="Center"
+                           FontSize="13"
+                           Margin="0,0,0,10"/>
+
+                <!-- Поля истории -->
+                <StackPanel Grid.Row="2" Margin="0,0,0,8">
+                    <TextBlock Text="Заголовок *" Foreground="#6B5E4A" Margin="0,0,0,2" FontSize="13"/>
                     <TextBox x:Name="txtTitle" 
-                             Padding="8" 
+                             Padding="5" 
+                             Height="30"
                              BorderBrush="#B7A48B" 
                              BorderThickness="0,0,0,1"
                              Background="Transparent"
-                             Margin="0,0,0,10"
-                             TextChanged="ValidateFields"/>
+                             TextChanged="ValidateFields"
+                             FontSize="13"/>
+                </StackPanel>
 
-                    <TextBlock Text="Дата события" Foreground="#6B5E4A" Margin="0,5,0,2"/>
+                <StackPanel Grid.Row="3" Margin="0,0,0,8">
+                    <TextBlock Text="Дата события" Foreground="#6B5E4A" Margin="0,0,0,2" FontSize="13"/>
                     <DatePicker x:Name="dpEventDate" 
-                                Height="35"
+                                Height="30"
                                 BorderBrush="#B7A48B"
-                                Margin="0,0,0,5"/>
+                                FontSize="13"/>
                     <TextBlock Text="или текстовое описание даты (например, 'лето 1985')" 
                                Foreground="#8B7E6B" 
-                               FontSize="11"
-                               Margin="0,0,0,5"/>
+                               FontSize="10"
+                               Margin="0,2,0,0"/>
                     <TextBox x:Name="txtEventDateText" 
-                             Padding="8" 
+                             Padding="5" 
+                             Height="30"
                              BorderBrush="#B7A48B" 
                              BorderThickness="0,0,0,1"
                              Background="Transparent"
-                             Margin="0,0,0,10"/>
+                             Margin="0,5,0,0"
+                             FontSize="13"/>
+                </StackPanel>
 
-                    <TextBlock Text="Текст истории *" Foreground="#6B5E4A" Margin="0,5,0,2"/>
+                <StackPanel Grid.Row="4" Margin="0,0,0,10">
+                    <TextBlock Text="Текст истории *" Foreground="#6B5E4A" Margin="0,0,0,2" FontSize="13"/>
                     <TextBox x:Name="txtContent" 
-                             Height="120"
+                             Height="80"
                              TextWrapping="Wrap"
                              AcceptsReturn="True"
-                             Padding="8"
+                             Padding="5"
                              BorderBrush="#B7A48B"
                              Background="Transparent"
-                             Margin="0,0,0,15"
-                             TextChanged="ValidateFields"/>
-
-                    <!-- Медиафайлы к истории -->
-                    <GroupBox Header="Медиафайлы к истории" 
-                              BorderBrush="#B7A48B" 
-                              Foreground="#5C4E3D"
-                              Margin="0,0,0,15">
-                        <StackPanel Margin="10">
-                            <!-- Список прикрепленных файлов -->
-                            <ListView x:Name="lvAttachedMedia" 
-                                      Height="100"
-                                      BorderThickness="0"
-                                      Background="Transparent"
-                                      Margin="0,0,0,10"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto">
-                                <ListView.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border BorderBrush="#D6C9B8" 
-                                                BorderThickness="1"
-                                                CornerRadius="3"
-                                                Padding="5"
-                                                Margin="0,0,0,2">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-
-                                                <TextBlock Grid.Column="0" 
-                                                           Text="{Binding Icon}" 
-                                                           FontSize="16"
-                                                           Margin="0,0,5,0"/>
-                                                <TextBlock Grid.Column="1" 
-                                                           Text="{Binding FileName}" 
-                                                           Foreground="#5C4E3D"/>
-                                                <Button Grid.Column="2" 
-                                                        Content="✕" 
-                                                        Width="20" Height="20"
-                                                        Background="Transparent"
-                                                        BorderThickness="0"
-                                                        Foreground="#FF8C00"
-                                                        FontWeight="Bold"
-                                                        Tag="{Binding FileId}"
-                                                        Click="RemoveMedia_Click"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
-
-                            <!-- Кнопки добавления медиа -->
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Content="📷 Добавить фото" 
-                                        Width="120" Height="30"
-                                        Background="#8FAA7A"
-                                        Foreground="White"
-                                        BorderThickness="0"
-                                        Margin="0,0,5,0"
-                                        Click="AddPhoto_Click"/>
-                                <Button Content="🎥 Добавить видео" 
-                                        Width="120" Height="30"
-                                        Background="#8FAA7A"
-                                        Foreground="White"
-                                        BorderThickness="0"
-                                        Margin="5,0,5,0"
-                                        Click="AddVideo_Click"/>
-                                <Button Content="🎵 Добавить аудио" 
-                                        Width="120" Height="30"
-                                        Background="#8FAA7A"
-                                        Foreground="White"
-                                        BorderThickness="0"
-                                        Margin="5,0,0,0"
-                                        Click="AddAudio_Click"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </GroupBox>
-
-                    <!-- Кнопки -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Button Grid.Column="0" 
-                                Content="ОТМЕНА" 
-                                Width="120" Height="40"
-                                Background="Transparent"
-                                BorderBrush="#D6C9B8"
-                                Foreground="#6B5E4A"
-                                BorderThickness="1"
-                                Margin="0,0,10,0"
-                                HorizontalAlignment="Right"
-                                Click="CancelButton_Click"/>
-
-                        <Button Grid.Column="1" 
-                                x:Name="btnSave"
-                                Content="СОХРАНИТЬ" 
-                                Width="120" Height="40"
-                                Background="#8FAA7A"
-                                Foreground="White"
-                                BorderThickness="0"
-                                Margin="10,0,0,0"
-                                HorizontalAlignment="Left"
-                                IsEnabled="False"
-                                Click="SaveButton_Click"/>
-                    </Grid>
-
-                    <TextBlock Text="* - обязательные поля"
-                               Foreground="#B7A48B"
-                               FontSize="11"
-                               HorizontalAlignment="Center"
-                               Margin="0,15,0,0"/>
+                             TextChanged="ValidateFields"
+                             FontSize="13"/>
                 </StackPanel>
-            </Border>
-        </ScrollViewer>
+
+                <!-- Медиафайлы к истории -->
+                <GroupBox Grid.Row="5" 
+                          Header="Медиафайлы к истории" 
+                          BorderBrush="#B7A48B" 
+                          Foreground="#5C4E3D"
+                          Margin="0,0,0,10"
+                          Padding="5">
+                    <StackPanel>
+                        <!-- Список прикрепленных файлов -->
+                        <ListView x:Name="lvAttachedMedia" 
+                                  Height="70"
+                                  BorderThickness="0"
+                                  Background="Transparent"
+                                  Margin="0,0,0,5"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#D6C9B8" 
+                                            BorderThickness="1"
+                                            CornerRadius="3"
+                                            Padding="3"
+                                            Margin="0,0,0,2">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" 
+                                                       Text="{Binding Icon}" 
+                                                       FontSize="14"
+                                                       Margin="0,0,5,0"/>
+                                            <TextBlock Grid.Column="1" 
+                                                       Text="{Binding FileName}" 
+                                                       Foreground="#5C4E3D"
+                                                       FontSize="12"/>
+                                            <Button Grid.Column="2" 
+                                                    Content="✕" 
+                                                    Width="18" Height="18"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Foreground="#FF8C00"
+                                                    FontWeight="Bold"
+                                                    FontSize="12"
+                                                    Tag="{Binding FileId}"
+                                                    Click="RemoveMedia_Click"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <!-- Кнопки добавления медиа -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button Content="📷 Фото" 
+                                    Width="80" Height="28"
+                                    Background="#8FAA7A"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Margin="0,0,3,0"
+                                    FontSize="12"
+                                    Click="AddPhoto_Click"/>
+                            <Button Content="🎥 Видео" 
+                                    Width="80" Height="28"
+                                    Background="#8FAA7A"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Margin="3,0,3,0"
+                                    FontSize="12"
+                                    Click="AddVideo_Click"/>
+                            <Button Content="🎵 Аудио" 
+                                    Width="80" Height="28"
+                                    Background="#8FAA7A"
+                                    Foreground="White"
+                                    BorderThickness="0"
+                                    Margin="3,0,0,0"
+                                    FontSize="12"
+                                    Click="AddAudio_Click"/>
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Кнопки -->
+                <Grid Grid.Row="6" Margin="0,5,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" 
+                               Text="* - обязательные поля"
+                               Foreground="#B7A48B"
+                               FontSize="10"
+                               VerticalAlignment="Center"/>
+
+                    <Button Grid.Column="1" 
+                            Content="ОТМЕНА" 
+                            Width="90" Height="32"
+                            Background="Transparent"
+                            BorderBrush="#D6C9B8"
+                            Foreground="#6B5E4A"
+                            BorderThickness="1"
+                            Margin="0,0,8,0"
+                            FontSize="12"
+                            Click="CancelButton_Click"/>
+
+                    <Button Grid.Column="2" 
+                            x:Name="btnSave"
+                            Content="СОХРАНИТЬ" 
+                            Width="90" Height="32"
+                            Background="#8FAA7A"
+                            Foreground="White"
+                            BorderThickness="0"
+                            FontSize="12"
+                            IsEnabled="False"
+                            Click="SaveButton_Click"/>
+                </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </Page>

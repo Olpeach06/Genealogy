@@ -3,12 +3,689 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:Genealogy.Pages"
       mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
-      Title="ReportsPage">
+      d:DesignHeight="800" d:DesignWidth="1200"
+      Title="Отчеты"
+      Background="#F5F0E6"
+      Loaded="Page_Loaded">
 
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Верхнее меню -->
+        <Border Grid.Row="0" 
+                Background="#FDF8F0"
+                BorderBrush="#D6C9B8"
+                BorderThickness="0,0,0,1">
+            <Grid Margin="20,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,30,0">
+                    <TextBlock Text="🌳" FontSize="24" Foreground="#8FAA7A"/>
+                    <TextBlock Text="Genealogy" FontSize="18" FontWeight="SemiBold" 
+                               Foreground="#5C4E3D" Margin="5,0,0,0"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="Главная" Click="MainPageButton_Click" Margin="5,0"/>
+                <Button Grid.Column="2" Content="Мои деревья" Click="TreesButton_Click" Margin="5,0"/>
+                <Button Grid.Column="3" Content="Отчеты" IsEnabled="False" Margin="5,0"/>
+
+                <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock x:Name="txtUserName"
+                               Text="Имя пользователя"
+                               VerticalAlignment="Center"
+                               Foreground="#5C4E3D"
+                               FontWeight="Medium"
+                               Margin="0,0,15,0"/>
+                    <Button Content="Выйти" 
+                            Click="LogoutButton_Click"
+                            Background="Transparent"
+                            BorderBrush="#D6C9B8"
+                            BorderThickness="1"
+                            Foreground="#8B7E6B"
+                            Padding="10,5"
+                            Cursor="Hand"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Основной контент -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="30">
+
+                <!-- Заголовок и выбор дерева -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" 
+                               Text="ОТЧЕТЫ И СТАТИСТИКА" 
+                               FontSize="24" FontWeight="SemiBold"
+                               Foreground="#5C4E3D"
+                               VerticalAlignment="Center"/>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <TextBlock Text="Дерево:" Foreground="#6B5E4A" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="cmbTrees" 
+                                  Width="200" Height="35"
+                                  Background="White"
+                                  BorderBrush="#D6C9B8"
+                                  DisplayMemberPath="Name"
+                                  SelectedValuePath="Id"
+                                  SelectionChanged="TreeSelectionChanged"/>
+                        <Button x:Name="btnRefresh" 
+                                Content="🔄" 
+                                Width="35" Height="35"
+                                Background="Transparent"
+                                BorderBrush="#D6C9B8"
+                                BorderThickness="1"
+                                Margin="5,0,0,0"
+                                Click="RefreshButton_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Кнопки экспорта (только для админа/редактора) -->
+                <StackPanel x:Name="panelExport" 
+                            Orientation="Horizontal" 
+                            HorizontalAlignment="Right"
+                            Margin="0,0,0,20"
+                            Visibility="Collapsed">
+                    <Button Content="📄 PDF" 
+                            Width="100" Height="35"
+                            Background="#8FAA7A"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Margin="0,0,5,0"
+                            Click="ExportPdf_Click"/>
+                    <Button Content="📊 EXCEL" 
+                            Width="100" Height="35"
+                            Background="#8FAA7A"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Margin="5,0,5,0"
+                            Click="ExportExcel_Click"/>
+                    <Button Content="🖨️ ПЕЧАТЬ" 
+                            Width="100" Height="35"
+                            Background="Transparent"
+                            BorderBrush="#D6C9B8"
+                            Foreground="#6B5E4A"
+                            BorderThickness="1"
+                            Margin="5,0,0,0"
+                            Click="PrintButton_Click"/>
+                </StackPanel>
+
+                <!-- Блок 1: Общая статистика (карточки) -->
+                <Border Background="#FDF8F0"
+                        CornerRadius="10"
+                        BorderBrush="#D6C9B8"
+                        BorderThickness="1"
+                        Padding="20"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="ОБЩАЯ СТАТИСТИКА" 
+                                   Foreground="#5C4E3D"
+                                   FontSize="16" FontWeight="Bold"
+                                   Margin="0,0,0,15"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Карточка 1: Всего персон -->
+                            <Border Grid.Column="0" 
+                                    Background="#F5F0E6"
+                                    CornerRadius="8"
+                                    Padding="15"
+                                    Margin="0,0,5,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="👥" FontSize="32" Foreground="#8FAA7A" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="txtTotalPersons" 
+                                               Text="0" 
+                                               FontSize="28" FontWeight="Bold"
+                                               Foreground="#5C4E3D"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Всего персон" 
+                                               Foreground="#8B7E6B"
+                                               FontSize="12"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Карточка 2: Семей -->
+                            <Border Grid.Column="1" 
+                                    Background="#F5F0E6"
+                                    CornerRadius="8"
+                                    Padding="15"
+                                    Margin="5,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="👪" FontSize="32" Foreground="#8FAA7A" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="txtTotalFamilies" 
+                                               Text="0" 
+                                               FontSize="28" FontWeight="Bold"
+                                               Foreground="#5C4E3D"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Семей" 
+                                               Foreground="#8B7E6B"
+                                               FontSize="12"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Карточка 3: Браков -->
+                            <Border Grid.Column="2" 
+                                    Background="#F5F0E6"
+                                    CornerRadius="8"
+                                    Padding="15"
+                                    Margin="5,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="💍" FontSize="32" Foreground="#8FAA7A" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="txtTotalMarriages" 
+                                               Text="0" 
+                                               FontSize="28" FontWeight="Bold"
+                                               Foreground="#5C4E3D"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Браков" 
+                                               Foreground="#8B7E6B"
+                                               FontSize="12"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Карточка 4: Умерших -->
+                            <Border Grid.Column="3" 
+                                    Background="#F5F0E6"
+                                    CornerRadius="8"
+                                    Padding="15"
+                                    Margin="5,0,0,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="⚰️" FontSize="32" Foreground="#8FAA7A" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="txtTotalDeceased" 
+                                               Text="0" 
+                                               FontSize="28" FontWeight="Bold"
+                                               Foreground="#5C4E3D"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Умерших" 
+                                               Foreground="#8B7E6B"
+                                               FontSize="12"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Блок 2: Демография -->
+                <Border Background="#FDF8F0"
+                        CornerRadius="10"
+                        BorderBrush="#D6C9B8"
+                        BorderThickness="1"
+                        Padding="20"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="ДЕМОГРАФИЯ" 
+                                   Foreground="#5C4E3D"
+                                   FontSize="16" FontWeight="Bold"
+                                   Margin="0,0,0,15"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Левая колонка: Пол -->
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Распределение по полу" 
+                                           Foreground="#6B5E4A"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,10"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                                               Text="♂ Мужчины:" 
+                                               Foreground="#5C4E3D"
+                                               Margin="0,0,5,5"/>
+                                    <ProgressBar Grid.Row="0" Grid.Column="1" 
+                                                 x:Name="progressMen"
+                                                 Height="20"
+                                                 Minimum="0" Maximum="100"
+                                                 Foreground="#5C4E3D"
+                                                 Background="#F5F0E6"
+                                                 BorderBrush="#D6C9B8"
+                                                 Margin="0,0,5,5"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="2" 
+                                               x:Name="txtMenPercent"
+                                               Text="0%" 
+                                               Foreground="#6B5E4A"
+                                               Margin="0,0,0,5"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" 
+                                               Text="♀ Женщины:" 
+                                               Foreground="#5C4E3D"
+                                               Margin="0,0,5,5"/>
+                                    <ProgressBar Grid.Row="1" Grid.Column="1" 
+                                                 x:Name="progressWomen"
+                                                 Height="20"
+                                                 Minimum="0" Maximum="100"
+                                                 Foreground="#8FAA7A"
+                                                 Background="#F5F0E6"
+                                                 BorderBrush="#D6C9B8"
+                                                 Margin="0,0,5,5"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" 
+                                               x:Name="txtWomenPercent"
+                                               Text="0%" 
+                                               Foreground="#6B5E4A"
+                                               Margin="0,0,0,5"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Правая колонка: Возраст -->
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Возрастная статистика" 
+                                           Foreground="#6B5E4A"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,10"/>
+
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                                               Text="Средний возраст:" 
+                                               Foreground="#6B5E4A"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" 
+                                               x:Name="txtAverageAge"
+                                               Text="0 лет" 
+                                               Foreground="#5C4E3D"
+                                               FontWeight="Bold"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" 
+                                               Text="Самый старший:" 
+                                               Foreground="#6B5E4A"
+                                               Margin="0,5,0,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                                               x:Name="txtOldestPerson"
+                                               Text="—" 
+                                               Foreground="#5C4E3D"
+                                               FontWeight="Bold"
+                                               Margin="0,5,0,0"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" 
+                                               Text="Самый младший:" 
+                                               Foreground="#6B5E4A"
+                                               Margin="0,5,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" 
+                                               x:Name="txtYoungestPerson"
+                                               Text="—" 
+                                               Foreground="#5C4E3D"
+                                               FontWeight="Bold"
+                                               Margin="0,5,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Блок 3: Поколения -->
+                <Border Background="#FDF8F0"
+                        CornerRadius="10"
+                        BorderBrush="#D6C9B8"
+                        BorderThickness="1"
+                        Padding="20"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="РАСПРЕДЕЛЕНИЕ ПО ПОКОЛЕНИЯМ" 
+                                   Foreground="#5C4E3D"
+                                   FontSize="16" FontWeight="Bold"
+                                   Margin="0,0,0,15"/>
+
+                        <TextBlock x:Name="txtTotalGenerations" 
+                                   Text="Всего поколений: 0" 
+                                   Foreground="#6B5E4A"
+                                   Margin="0,0,0,10"/>
+
+                        <ListView x:Name="lvGenerations" 
+                                  BorderThickness="0"
+                                  Background="Transparent"
+                                  ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="50"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" 
+                                                   Text="{Binding Name}" 
+                                                   Foreground="#5C4E3D"/>
+
+                                        <ProgressBar Grid.Column="1" 
+                                                     Height="20"
+                                                     Minimum="0" Maximum="{Binding MaxCount}"
+                                                     Value="{Binding Count}"
+                                                     Foreground="#8FAA7A"
+                                                     Background="#F5F0E6"
+                                                     BorderBrush="#D6C9B8"
+                                                     Margin="5,0"/>
+
+                                        <TextBlock Grid.Column="2" 
+                                                   Text="{Binding CountText}" 
+                                                   Foreground="#6B5E4A"
+                                                   HorizontalAlignment="Right"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+
+                <!-- Блок 4: Ближайшие события -->
+                <Border Background="#FDF8F0"
+        CornerRadius="10"
+        BorderBrush="#D6C9B8"
+        BorderThickness="1"
+        Padding="20"
+        Margin="0,0,0,20">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" 
+                       Text="БЛИЖАЙШИЕ СОБЫТИЯ" 
+                       Foreground="#5C4E3D"
+                       FontSize="16" FontWeight="Bold"
+                       VerticalAlignment="Center"/>
+
+                            <Button Grid.Column="1" 
+                    x:Name="btnCalendar"
+                    Content="📅 КАЛЕНДАРЬ" 
+                    Width="120" Height="35"
+                    Background="#8FAA7A"
+                    Foreground="White"
+                    BorderThickness="0"
+                    Click="CalendarButton_Click"
+                    Margin="0,0,0,15"/>
+                        </Grid>
+
+                        <ListView x:Name="lvEvents" 
+                  BorderThickness="0"
+                  Background="Transparent"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  MaxHeight="200">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#F5F0E6"
+                            CornerRadius="5"
+                            Padding="10"
+                            Margin="0,0,0,5">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="100"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" 
+                                       Text="{Binding Date}" 
+                                       Foreground="#8FAA7A"
+                                       FontWeight="Bold"/>
+
+                                            <TextBlock Grid.Column="1" 
+                                       Text="{Binding Description}" 
+                                       Foreground="#6B5E4A"
+                                       TextWrapping="Wrap"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <TextBlock x:Name="txtNoEvents" 
+                   Text="Нет ближайших событий" 
+                   Foreground="#B7A48B"
+                   HorizontalAlignment="Center"
+                   Margin="10"
+                   Visibility="Collapsed"/>
+                    </StackPanel>
+                </Border>
+                <!-- Блок 5: Популярные имена -->
+                <Border Background="#FDF8F0"
+                        CornerRadius="10"
+                        BorderBrush="#D6C9B8"
+                        BorderThickness="1"
+                        Padding="20"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="ПОПУЛЯРНЫЕ ИМЕНА" 
+                                   Foreground="#5C4E3D"
+                                   FontSize="16" FontWeight="Bold"
+                                   Margin="0,0,0,15"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Мужские имена -->
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Мужские" 
+                                           Foreground="#5C4E3D"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,10"/>
+                                <ListView x:Name="lvMaleNames" 
+                                          BorderThickness="0"
+                                          Background="Transparent"
+                                          MaxHeight="150"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" 
+                                                           Text="{Binding Name}" 
+                                                           Foreground="#6B5E4A"/>
+                                                <TextBlock Grid.Column="1" 
+                                                           Text="{Binding Count}" 
+                                                           Foreground="#8FAA7A"
+                                                           FontWeight="Bold"
+                                                           Margin="5,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </StackPanel>
+
+                            <!-- Женские имена -->
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Женские" 
+                                           Foreground="#5C4E3D"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,10"/>
+                                <ListView x:Name="lvFemaleNames" 
+                                          BorderThickness="0"
+                                          Background="Transparent"
+                                          MaxHeight="150"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" 
+                                                           Text="{Binding Name}" 
+                                                           Foreground="#6B5E4A"/>
+                                                <TextBlock Grid.Column="1" 
+                                                           Text="{Binding Count}" 
+                                                           Foreground="#8FAA7A"
+                                                           FontWeight="Bold"
+                                                           Margin="5,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Популярные фамилии -->
+                        <TextBlock Text="Популярные фамилии" 
+                                   Foreground="#5C4E3D"
+                                   FontWeight="SemiBold"
+                                   Margin="0,15,0,5"/>
+                        <ListView x:Name="lvSurnames" 
+                                  BorderThickness="0"
+                                  Background="Transparent"
+                                  MaxHeight="150"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" 
+                                                   Text="{Binding Name}" 
+                                                   Foreground="#6B5E4A"/>
+                                        <TextBlock Grid.Column="1" 
+                                                   Text="{Binding Count}" 
+                                                   Foreground="#8FAA7A"
+                                                   FontWeight="Bold"
+                                                   Margin="5,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+
+                <!-- Блок 6: Медиа-статистика -->
+                <Border Background="#FDF8F0"
+                        CornerRadius="10"
+                        BorderBrush="#D6C9B8"
+                        BorderThickness="1"
+                        Padding="20"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="МЕДИАФАЙЛЫ" 
+                                   Foreground="#5C4E3D"
+                                   FontSize="16" FontWeight="Bold"
+                                   Margin="0,0,0,15"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Всего файлов:" Foreground="#6B5E4A"/>
+                                <TextBlock x:Name="txtTotalMedia" 
+                                           Text="0" 
+                                           FontSize="24" FontWeight="Bold"
+                                           Foreground="#5C4E3D"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1">
+                                <Grid Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" 
+                                               Text="📷 Фото:" 
+                                               Foreground="#6B5E4A"
+                                               Width="50"/>
+                                    <TextBlock Grid.Column="1" 
+                                               x:Name="txtPhotoCount"
+                                               Text="0" 
+                                               Foreground="#5C4E3D"
+                                               HorizontalAlignment="Right"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" 
+                                               Text="🎥 Видео:" 
+                                               Foreground="#6B5E4A"
+                                               Width="50"/>
+                                    <TextBlock Grid.Column="1" 
+                                               x:Name="txtVideoCount"
+                                               Text="0" 
+                                               Foreground="#5C4E3D"
+                                               HorizontalAlignment="Right"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" 
+                                               Text="🎵 Аудио:" 
+                                               Foreground="#6B5E4A"
+                                               Width="50"/>
+                                    <TextBlock Grid.Column="1" 
+                                               x:Name="txtAudioCount"
+                                               Text="0" 
+                                               Foreground="#5C4E3D"
+                                               HorizontalAlignment="Right"/>
+                                </Grid>
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock x:Name="txtTopMediaPerson" 
+                                   Text="Больше всего медиа у: —" 
+                                   Foreground="#8B7E6B"
+                                   Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

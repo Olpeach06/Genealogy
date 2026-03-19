@@ -187,6 +187,13 @@ namespace Genealogy.Pages
                         context.FamilyTrees.Add(newTree);
                         context.SaveChanges();
 
+                        // Если это первое дерево, автоматически делаем его текущим
+                        var treeCount = context.FamilyTrees.Count(t => t.CreatedByUserId == Session.UserId);
+                        if (treeCount == 1)
+                        {
+                            Session.CurrentTreeId = newTree.Id;
+                        }
+
                         MessageBox.Show("Новое дерево создано!", "Успех",
                             MessageBoxButton.OK, MessageBoxImage.Information);
 
@@ -210,10 +217,8 @@ namespace Genealogy.Pages
             // Сохраняем выбранное дерево в сессии
             Session.CurrentTreeId = treeId;
 
-            MessageBox.Show("Дерево выбрано. При переходе на главную страницу оно откроется.",
-                "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
-
-            LoadTrees(); // Обновляем отображение
+            // Сразу переходим на главную страницу с выбранным деревом
+            NavigationService.Navigate(new MainPage());
         }
 
         private void EditTreeButton_Click(object sender, RoutedEventArgs e)
@@ -308,8 +313,10 @@ namespace Genealogy.Pages
                         if (treeId == Session.CurrentTreeId)
                         {
                             // Находим первое доступное дерево
-                            var anyTree = context.FamilyTrees.FirstOrDefault();
-                            Session.CurrentTreeId = anyTree?.Id ?? 1;
+                            var anyTree = context.FamilyTrees
+                                .Where(t => t.CreatedByUserId == Session.UserId)
+                                .FirstOrDefault();
+                            Session.CurrentTreeId = anyTree?.Id ?? 0;
                         }
 
                         MessageBox.Show("Дерево удалено!", "Успех",

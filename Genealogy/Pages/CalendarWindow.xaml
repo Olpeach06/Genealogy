@@ -1,0 +1,87 @@
+﻿<Window x:Class="Genealogy.Pages.CalendarWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Календарь дней рождения"
+        Height="600" Width="800"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F0E6"
+        ResizeMode="CanResize">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Заголовок -->
+        <TextBlock Grid.Row="0" 
+                   Text="📅 КАЛЕНДАРЬ ДНЕЙ РОЖДЕНИЯ" 
+                   FontSize="20" FontWeight="Bold"
+                   Foreground="#5C4E3D"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,15"/>
+
+        <!-- Информация о древе -->
+        <TextBlock Grid.Row="1" 
+                   x:Name="txtTreeInfo"
+                   Text="Загрузка..."
+                   Foreground="#8B7E6B"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,15"/>
+
+        <!-- Список дней рождения -->
+        <ListView Grid.Row="2" 
+                  x:Name="lvBirthdays"
+                  Background="Transparent"
+                  BorderThickness="0"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="{Binding BackgroundColor}"
+                            CornerRadius="5"
+                            Padding="10"
+                            Margin="0,0,0,5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="100"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" 
+                                       Text="{Binding DayMonth}" 
+                                       FontWeight="Bold"
+                                       Foreground="#8FAA7A"
+                                       VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Column="1" 
+                                       Text="{Binding FullName}" 
+                                       Foreground="#5C4E3D"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Column="2" 
+                                       Text="{Binding AgeText}" 
+                                       Foreground="#6B5E4A"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- Кнопка закрытия -->
+        <Button Grid.Row="3" 
+                Content="ЗАКРЫТЬ" 
+                Width="120" Height="35"
+                Background="#8FAA7A"
+                Foreground="White"
+                BorderThickness="0"
+                Margin="0,10,0,0"
+                HorizontalAlignment="Center"
+                Click="CloseButton_Click"/>
+    </Grid>
+</Window>
