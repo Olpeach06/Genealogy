@@ -79,7 +79,8 @@
                                  BorderBrush="#B7A48B"
                                  BorderThickness="0,0,0,1"
                                  Background="Transparent"
-                                 Foreground="#3A3229">
+                                 Foreground="#3A3229"
+                                 KeyDown="TextBox_KeyDown">
                             <TextBox.Style>
                                 <Style TargetType="TextBox">
                                     <Setter Property="BorderBrush" Value="#B7A48B"/>
@@ -97,7 +98,7 @@
                     </StackPanel>
 
                     <StackPanel Margin="0,0,0,15">
-                        <TextBlock Text="Email" 
+                        <TextBlock Text="Email *" 
                                    Foreground="#6B5E4A"
                                    FontSize="12"
                                    FontWeight="Medium"
@@ -108,7 +109,8 @@
                                  BorderBrush="#B7A48B"
                                  BorderThickness="0,0,0,1"
                                  Background="Transparent"
-                                 Foreground="#3A3229">
+                                 Foreground="#3A3229"
+                                 KeyDown="TextBox_KeyDown">
                             <TextBox.Style>
                                 <Style TargetType="TextBox">
                                     <Setter Property="BorderBrush" Value="#B7A48B"/>
@@ -137,7 +139,8 @@
                                      BorderBrush="#B7A48B"
                                      BorderThickness="0,0,0,1"
                                      Background="Transparent"
-                                     Foreground="#3A3229">
+                                     Foreground="#3A3229"
+                                     KeyDown="PasswordBox_KeyDown">
                             <PasswordBox.Style>
                                 <Style TargetType="PasswordBox">
                                     <Setter Property="BorderBrush" Value="#B7A48B"/>
@@ -166,7 +169,8 @@
                                      BorderBrush="#B7A48B"
                                      BorderThickness="0,0,0,1"
                                      Background="Transparent"
-                                     Foreground="#3A3229">
+                                     Foreground="#3A3229"
+                                     KeyDown="PasswordBox_KeyDown">
                             <PasswordBox.Style>
                                 <Style TargetType="PasswordBox">
                                     <Setter Property="BorderBrush" Value="#B7A48B"/>
@@ -184,7 +188,8 @@
                     </StackPanel>
 
                     <!-- Кнопка регистрации -->
-                    <Button Content="ЗАРЕГИСТРИРОВАТЬСЯ" 
+                    <Button x:Name="btnRegister"
+                            Content="ЗАРЕГИСТРИРОВАТЬСЯ" 
                             Click="RegisterButton_Click"
                             Background="#8FAA7A"
                             Foreground="White"

@@ -1,13 +1,15 @@
-﻿using System;
+﻿using Genealogy.AppData;
+using Genealogy.Classes;
+using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Navigation;
-using Microsoft.Win32;
-using Genealogy.Classes;
-using Genealogy.AppData;
 
 namespace Genealogy.Pages
 {
@@ -16,6 +18,12 @@ namespace Genealogy.Pages
         private int personId;
         private int? storyId = null;
         private List<AttachedMedia> attachedMedia = new List<AttachedMedia>();
+        private bool _isProcessing = false; // Флаг для предотвращения двойных вызовов
+
+        // Константы для ограничений
+        private const int MAX_TITLE_LENGTH = 200;
+        private const int MAX_CONTENT_LENGTH = 5000;
+        private const int MAX_DATE_TEXT_LENGTH = 100;
 
         public class AttachedMedia
         {
@@ -34,6 +42,7 @@ namespace Genealogy.Pages
             this.storyId = null;
             txtPageTitle.Text = "ДОБАВЛЕНИЕ ИСТОРИИ";
             LoadPersonInfo();
+            SetupDateRestrictions();
         }
 
         public EditStoryPage(int personId, int storyId) : this(personId)
@@ -47,6 +56,50 @@ namespace Genealogy.Pages
         {
             ValidateFields(null, null);
         }
+
+        private void SetupDateRestrictions()
+        {
+            // Ограничение даты - не позже сегодняшнего дня
+            dpEventDate.DisplayDateEnd = DateTime.Today;
+
+            // Можно также ограничить самую раннюю дату (например, 1700 год)
+            dpEventDate.DisplayDateStart = new DateTime(1700, 1, 1);
+        }
+
+        // ==================== ОБРАБОТЧИКИ ENTER ====================
+
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                // Для многострочного текстового поля Enter должен работать как перевод строки
+                if (sender == txtContent && (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+                {
+                    // Shift+Enter - перевод строки (оставляем стандартное поведение)
+                    return;
+                }
+                else if (sender == txtContent)
+                {
+                    // Просто Enter в многострочном поле - не сохраняем, а переводим строку
+                    // Чтобы сохранить, нужно нажать Ctrl+Enter или использовать кнопку
+                    return;
+                }
+
+                e.Handled = true;
+                PerformSave();
+            }
+        }
+
+        private void DatePicker_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                PerformSave();
+            }
+        }
+
+        // ==================== ЗАГРУЗКА ДАННЫХ ====================
 
         private void LoadPersonInfo()
         {
@@ -131,7 +184,75 @@ namespace Genealogy.Pages
         {
             bool isValid = !string.IsNullOrWhiteSpace(txtTitle.Text) &&
                           !string.IsNullOrWhiteSpace(txtContent.Text);
+
+            // Проверка длины полей
+            if (txtTitle.Text.Length > MAX_TITLE_LENGTH)
+            {
+                isValid = false;
+                ShowTitleLengthWarning();
+            }
+            else
+            {
+                ResetTitleWarning();
+            }
+
+            if (txtContent.Text.Length > MAX_CONTENT_LENGTH)
+            {
+                isValid = false;
+                ShowContentLengthWarning();
+            }
+            else
+            {
+                ResetContentWarning();
+            }
+
+            if (txtEventDateText.Text.Length > MAX_DATE_TEXT_LENGTH)
+            {
+                isValid = false;
+                ShowDateTextLengthWarning();
+            }
+            else
+            {
+                ResetDateTextWarning();
+            }
+
             btnSave.IsEnabled = isValid;
+        }
+
+        private void ShowTitleLengthWarning()
+        {
+            txtTitle.BorderBrush = System.Windows.Media.Brushes.Red;
+            txtTitle.ToolTip = $"Максимальная длина заголовка - {MAX_TITLE_LENGTH} символов";
+        }
+
+        private void ResetTitleWarning()
+        {
+            txtTitle.BorderBrush = System.Windows.Media.Brushes.LightGray;
+            txtTitle.ToolTip = null;
+        }
+
+        private void ShowContentLengthWarning()
+        {
+            txtContent.BorderBrush = System.Windows.Media.Brushes.Red;
+            txtContent.ToolTip = $"Максимальная длина текста - {MAX_CONTENT_LENGTH} символов";
+        }
+
+        private void ResetContentWarning()
+        {
+            txtContent.BorderBrush = System.Windows.Media.Brushes.LightGray;
+            txtContent.ToolTip = null;
+        }
+
+        private void ShowDateTextLengthWarning()
+        {
+            txtEventDateText.BorderBrush = System.Windows.Media.Brushes.Red;
+            txtEventDateText.ToolTip = $"Максимальная длина описания даты - {MAX_DATE_TEXT_LENGTH} символов";
+        }
+
+        private void ResetDateTextWarning()
+        {
+            txtEventDateText.BorderBrush = System.Windows.Media.Brushes.LightGray;
+            txtEventDateText.ToolTip = null;
         }
 
         // ==================== ДОБАВЛЕНИЕ МЕДИАФАЙЛОВ ====================
@@ -239,12 +360,58 @@ namespace Genealogy.Pages
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
+            PerformSave();
+        }
+
+        private void PerformSave()
+        {
+            // Предотвращаем повторный вызов
+            if (_isProcessing)
+                return;
+
             try
             {
+                _isProcessing = true;
+
+                // Проверка обязательных полей
                 if (string.IsNullOrWhiteSpace(txtTitle.Text) || string.IsNullOrWhiteSpace(txtContent.Text))
                 {
                     MessageBox.Show("Заполните заголовок и текст истории!", "Ошибка",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Проверка длины полей перед сохранением
+                if (txtTitle.Text.Length > MAX_TITLE_LENGTH)
+                {
+                    MessageBox.Show($"Заголовок слишком длинный! Максимум {MAX_TITLE_LENGTH} символов.", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    txtTitle.Focus();
+                    return;
+                }
+
+                if (txtContent.Text.Length > MAX_CONTENT_LENGTH)
+                {
+                    MessageBox.Show($"Текст истории слишком длинный! Максимум {MAX_CONTENT_LENGTH} символов.", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    txtContent.Focus();
+                    return;
+                }
+
+                if (txtEventDateText.Text.Length > MAX_DATE_TEXT_LENGTH)
+                {
+                    MessageBox.Show($"Описание даты слишком длинное! Максимум {MAX_DATE_TEXT_LENGTH} символов.", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    txtEventDateText.Focus();
+                    return;
+                }
+
+                // Проверка даты (не из будущего)
+                if (dpEventDate.SelectedDate.HasValue && dpEventDate.SelectedDate.Value > DateTime.Today)
+                {
+                    MessageBox.Show("Дата события не может быть в будущем!", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    dpEventDate.Focus();
                     return;
                 }
 
@@ -308,6 +475,10 @@ namespace Genealogy.Pages
             {
                 MessageBox.Show($"Ошибка сохранения: {ex.Message}", "Ошибка",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isProcessing = false;
             }
         }
 

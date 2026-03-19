@@ -72,7 +72,7 @@
 
                 <!-- Поля ввода -->
                 <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Логин" 
+                    <TextBlock Text="Логин или Email" 
                                Foreground="#6B5E4A"
                                FontSize="12"
                                FontWeight="Medium"
@@ -83,13 +83,15 @@
                              BorderBrush="#B7A48B"
                              BorderThickness="0,0,0,1"
                              Background="Transparent"
-                             Foreground="#3A3229">
+                             Foreground="#3A3229"
+                             KeyDown="TextBox_KeyDown">
                         <TextBox.Style>
                             <Style TargetType="TextBox">
                                 <Setter Property="BorderBrush" Value="#B7A48B"/>
                                 <Style.Triggers>
                                     <Trigger Property="IsFocused" Value="True">
-                                        <Setter Property="BorderBrush" Value="#8FAA7A"/> <!-- Мятно-зеленый при фокусе -->
+                                        <Setter Property="BorderBrush" Value="#8FAA7A"/>
+                                        <!-- Мятно-зеленый при фокусе -->
                                     </Trigger>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter Property="BorderBrush" Value="#9CAF88"/>
@@ -112,7 +114,8 @@
                                  BorderBrush="#B7A48B"
                                  BorderThickness="0,0,0,1"
                                  Background="Transparent"
-                                 Foreground="#3A3229">
+                                 Foreground="#3A3229"
+                                 KeyDown="PasswordBox_KeyDown">
                         <PasswordBox.Style>
                             <Style TargetType="PasswordBox">
                                 <Setter Property="BorderBrush" Value="#B7A48B"/>
@@ -130,7 +133,8 @@
                 </StackPanel>
 
                 <!-- Кнопка входа (основная) -->
-                <Button Content="ВОЙТИ" 
+                <Button x:Name="btnLogin"
+                        Content="ВОЙТИ" 
                         Click="LoginButton_Click"
                         Background="#8FAA7A"
                         Foreground="White"
