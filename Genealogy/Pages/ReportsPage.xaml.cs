@@ -62,18 +62,30 @@ namespace Genealogy.Pages
         {
             // Загружаем данные сессии
             if (Session.IsGuest)
+            {
                 txtUserName.Text = "Гость";
+                btnUsers.Visibility = Visibility.Collapsed; // Скрываем для гостя
+            }
             else
+            {
                 txtUserName.Text = Session.Username;
+            }
 
             currentTreeId = Session.CurrentTreeId;
 
-            // Показываем кнопки экспорта для админа/редактора
+            // Показываем кнопки экспорта и кнопку Пользователи для админа/редактора
             bool canEdit = Session.IsAdmin || Session.IsEditor;
             panelExport.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
+            btnUsers.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
 
             LoadTrees();
             LoadReports();
+        }
+
+        // Метод для кнопки Пользователи
+        private void UsersButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new UsersPage());
         }
 
         private void LoadTrees()
@@ -415,11 +427,6 @@ namespace Genealogy.Pages
                     LoadReports();
                 }
             }
-        }
-
-        private void RefreshButton_Click(object sender, RoutedEventArgs e)
-        {
-            LoadReports();
         }
 
         private void MainPageButton_Click(object sender, RoutedEventArgs e)

@@ -237,88 +237,94 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Биография -->
+                <!-- Биография с ScrollViewer -->
                 <Border Background="#FDF8F0"
                         CornerRadius="15"
                         Padding="20"
                         BorderBrush="#B7A48B"
                         BorderThickness="1"
-                        Margin="0,0,0,20">
+                        Margin="0,0,0,20"
+                        Height="150">
                     <StackPanel>
                         <TextBlock Text="📖 Биография" 
                                    FontSize="18" FontWeight="SemiBold"
                                    Foreground="#5C4E3D"
                                    Margin="0,0,0,10"/>
-                        <TextBlock x:Name="txtBiography" 
-                                   Text="Родился в Москве. Окончил школу №123. Работает программистом."
-                                   TextWrapping="Wrap"
-                                   Foreground="#6B5E4A"
-                                   LineHeight="20"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Height="100">
+                            <TextBlock x:Name="txtBiography" 
+                                       Text="Родился в Москве. Окончил школу №123. Работает программистом."
+                                       TextWrapping="Wrap"
+                                       Foreground="#6B5E4A"
+                                       LineHeight="20"/>
+                        </ScrollViewer>
                     </StackPanel>
                 </Border>
 
-                <!-- Истории -->
+                <!-- Истории и воспоминания с ScrollViewer -->
                 <Border Background="#FDF8F0"
                         CornerRadius="15"
                         Padding="20"
                         BorderBrush="#B7A48B"
                         BorderThickness="1"
-                        Margin="0,0,0,20">
+                        Margin="0,0,0,20"
+                        Height="350">
                     <StackPanel>
                         <TextBlock Text="📚 Истории и воспоминания" 
                                    FontSize="18" FontWeight="SemiBold"
                                    Foreground="#5C4E3D"
                                    Margin="0,0,0,15"/>
 
-                        <ListView x:Name="lvStories" 
-                                  BorderThickness="0"
-                                  Background="Transparent"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="#F5F0E6"
-                                            CornerRadius="8"
-                                            Padding="15"
-                                            Margin="0,0,0,10">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Height="240">
+                            <ListView x:Name="lvStories" 
+                                      BorderThickness="0"
+                                      Background="Transparent"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#F5F0E6"
+                                                CornerRadius="8"
+                                                Padding="15"
+                                                Margin="0,0,0,10">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
 
-                                            <TextBlock Grid.Column="0" 
-                                                       Text="📖" 
-                                                       FontSize="20"
-                                                       Foreground="#8FAA7A"
-                                                       Margin="0,0,10,0"/>
+                                                <TextBlock Grid.Column="0" 
+                                                           Text="📖" 
+                                                           FontSize="20"
+                                                           Foreground="#8FAA7A"
+                                                           Margin="0,0,10,0"/>
 
-                                            <StackPanel Grid.Column="1">
-                                                <TextBlock Text="{Binding Title}" 
-                                                           FontWeight="Bold"
-                                                           Foreground="#5C4E3D"/>
-                                                <TextBlock Text="{Binding EventDateString}" 
-                                                           Foreground="#8B7E6B"
-                                                           FontSize="12"/>
-                                                <TextBlock Text="{Binding ShortContent}" 
-                                                           Foreground="#6B5E4A"
-                                                           TextWrapping="Wrap"
-                                                           MaxHeight="40"/>
-                                            </StackPanel>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="{Binding Title}" 
+                                                               FontWeight="Bold"
+                                                               Foreground="#5C4E3D"/>
+                                                    <TextBlock Text="{Binding EventDateString}" 
+                                                               Foreground="#8B7E6B"
+                                                               FontSize="12"/>
+                                                    <TextBlock Text="{Binding ShortContent}" 
+                                                               Foreground="#6B5E4A"
+                                                               TextWrapping="Wrap"
+                                                               MaxHeight="40"/>
+                                                </StackPanel>
 
-                                            <Button Grid.Column="2" 
-                                                    Content="Читать"
-                                                    Background="#8FAA7A"
-                                                    Foreground="White"
-                                                    BorderThickness="0"
-                                                    Padding="10,5"
-                                                    Tag="{Binding Id}"
-                                                    Click="ReadStory_Click"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
+                                                <Button Grid.Column="2" 
+                                                        Content="Читать"
+                                                        Background="#8FAA7A"
+                                                        Foreground="White"
+                                                        BorderThickness="0"
+                                                        Padding="10,5"
+                                                        Tag="{Binding Id}"
+                                                        Click="ReadStory_Click"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </ScrollViewer>
 
                         <Button x:Name="btnAddStoryBottom" 
                                 Content="➕ Добавить историю" 
@@ -333,115 +339,118 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Медиафайлы -->
+                <!-- Медиафайлы с ScrollViewer -->
                 <Border Background="#FDF8F0"
                         CornerRadius="15"
                         Padding="20"
                         BorderBrush="#B7A48B"
-                        BorderThickness="1">
+                        BorderThickness="1"
+                        Height="450">
                     <StackPanel>
                         <TextBlock Text="🖼️ Медиафайлы" 
                                    FontSize="18" FontWeight="SemiBold"
                                    Foreground="#5C4E3D"
                                    Margin="0,0,0,15"/>
 
-                        <TabControl BorderThickness="0" Background="Transparent">
-                            <TabItem Header="Фотографии" Background="#F5F0E6">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
-                                    <ItemsControl x:Name="icPhotos" Margin="5">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Width="120" Height="120"
-                                                        Margin="5"
-                                                        BorderBrush="#B7A48B"
-                                                        BorderThickness="1"
-                                                        CornerRadius="5">
-                                                    <Image Source="{Binding ThumbPath}" 
-                                                           Stretch="UniformToFill"
-                                                           Tag="{Binding Id}"
-                                                           MouseLeftButtonDown="Photo_Click"/>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-                            </TabItem>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Height="320">
+                            <TabControl BorderThickness="0" Background="Transparent">
+                                <TabItem Header="Фотографии" Background="#F5F0E6">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="280">
+                                        <ItemsControl x:Name="icPhotos" Margin="5">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="120" Height="120"
+                                                            Margin="5"
+                                                            BorderBrush="#B7A48B"
+                                                            BorderThickness="1"
+                                                            CornerRadius="5">
+                                                        <Image Source="{Binding ThumbPath}" 
+                                                               Stretch="UniformToFill"
+                                                               Tag="{Binding Id}"
+                                                               MouseLeftButtonDown="Photo_Click"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </TabItem>
 
-                            <TabItem Header="Видео" Background="#F5F0E6">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
-                                    <ItemsControl x:Name="icVideos" Margin="5">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Width="120" Height="120"
-                                                        Margin="5"
-                                                        BorderBrush="#B7A48B"
-                                                        BorderThickness="1"
-                                                        CornerRadius="5"
-                                                        Background="#F5F0E6">
-                                                    <StackPanel>
-                                                        <TextBlock Text="🎥" 
-                                                                   FontSize="40"
-                                                                   Foreground="#8FAA7A"
-                                                                   HorizontalAlignment="Center"/>
-                                                        <TextBlock Text="{Binding FileName}" 
-                                                                   Foreground="#6B5E4A"
-                                                                   FontSize="10"
-                                                                   TextAlignment="Center"
-                                                                   TextWrapping="Wrap"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-                            </TabItem>
-
-                            <TabItem Header="Аудио" Background="#F5F0E6">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
-                                    <ItemsControl x:Name="icAudios" Margin="5">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Margin="5"
-                                                        Padding="10"
-                                                        BorderBrush="#B7A48B"
-                                                        BorderThickness="1"
-                                                        CornerRadius="5">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="🎵" 
-                                                                   FontSize="20"
-                                                                   Foreground="#8FAA7A"
-                                                                   Margin="0,0,10,0"/>
+                                <TabItem Header="Видео" Background="#F5F0E6">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="280">
+                                        <ItemsControl x:Name="icVideos" Margin="5">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="120" Height="120"
+                                                            Margin="5"
+                                                            BorderBrush="#B7A48B"
+                                                            BorderThickness="1"
+                                                            CornerRadius="5"
+                                                            Background="#F5F0E6">
                                                         <StackPanel>
+                                                            <TextBlock Text="🎥" 
+                                                                       FontSize="40"
+                                                                       Foreground="#8FAA7A"
+                                                                       HorizontalAlignment="Center"/>
                                                             <TextBlock Text="{Binding FileName}" 
-                                                                       Foreground="#5C4E3D"
-                                                                       FontWeight="SemiBold"/>
-                                                            <Button Content="▶ Слушать" 
-                                                                    Background="Transparent"
-                                                                    BorderBrush="#B7A48B"
-                                                                    Foreground="#6B5E4A"
-                                                                    BorderThickness="1"
-                                                                    Padding="5"
-                                                                    Tag="{Binding Id}"
-                                                                    Click="PlayAudio_Click"/>
+                                                                       Foreground="#6B5E4A"
+                                                                       FontSize="10"
+                                                                       TextAlignment="Center"
+                                                                       TextWrapping="Wrap"/>
                                                         </StackPanel>
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </ScrollViewer>
-                            </TabItem>
-                        </TabControl>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </TabItem>
+
+                                <TabItem Header="Аудио" Background="#F5F0E6">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="280">
+                                        <ItemsControl x:Name="icAudios" Margin="5">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Margin="5"
+                                                            Padding="10"
+                                                            BorderBrush="#B7A48B"
+                                                            BorderThickness="1"
+                                                            CornerRadius="5">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="🎵" 
+                                                                       FontSize="20"
+                                                                       Foreground="#8FAA7A"
+                                                                       Margin="0,0,10,0"/>
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding FileName}" 
+                                                                           Foreground="#5C4E3D"
+                                                                           FontWeight="SemiBold"/>
+                                                                <Button Content="▶ Слушать" 
+                                                                        Background="Transparent"
+                                                                        BorderBrush="#B7A48B"
+                                                                        Foreground="#6B5E4A"
+                                                                        BorderThickness="1"
+                                                                        Padding="5"
+                                                                        Tag="{Binding Id}"
+                                                                        Click="PlayAudio_Click"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </TabItem>
+                            </TabControl>
+                        </ScrollViewer>
 
                         <Button x:Name="btnAddMedia" 
                                 Content="➕ Добавить медиафайл" 

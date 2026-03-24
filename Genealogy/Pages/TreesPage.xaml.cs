@@ -33,6 +33,7 @@ namespace Genealogy.Pages
             public int StoriesCount { get; set; }
             public int MediaCount { get; set; }
             public bool IsCurrent { get; set; }
+            public bool ShowDeleteButton { get; set; } // Свойство для отображения кнопки удаления
         }
 
         public TreesPage()
@@ -45,13 +46,22 @@ namespace Genealogy.Pages
         {
             // Загружаем данные сессии
             if (Session.IsGuest)
+            {
                 txtUserName.Text = "Гость";
+                btnCreateTree.Visibility = Visibility.Collapsed;
+                btnUsers.Visibility = Visibility.Collapsed; // Скрываем для гостя
+            }
             else
+            {
                 txtUserName.Text = Session.Username;
+            }
 
             // Проверка прав на создание/удаление
             bool canEdit = Session.IsAdmin || Session.IsEditor;
             btnCreateTree.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
+
+            // Показываем кнопку "Пользователи" для админов и редакторов
+            btnUsers.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
 
             LoadTrees();
         }
@@ -72,8 +82,14 @@ namespace Genealogy.Pages
                     {
                         // Если нет деревьев, показываем сообщение
                         borderCurrentTree.Visibility = Visibility.Collapsed;
-                        txtNoTrees.Visibility = Visibility.Visible;
+                        borderNoTrees.Visibility = Visibility.Visible;
+                        lvTrees.Visibility = Visibility.Collapsed;
                         return;
+                    }
+                    else
+                    {
+                        lvTrees.Visibility = Visibility.Visible;
+                        borderNoTrees.Visibility = Visibility.Collapsed;
                     }
 
                     // Формируем список для отображения
@@ -107,7 +123,8 @@ namespace Genealogy.Pages
                             PersonsCount = personsCount,
                             StoriesCount = storiesCount,
                             MediaCount = mediaCount,
-                            IsCurrent = isCurrent
+                            IsCurrent = isCurrent,
+                            ShowDeleteButton = Session.IsAdmin // Только администратор видит кнопку удаления
                         });
                     }
 
@@ -139,12 +156,10 @@ namespace Genealogy.Pages
                     if (otherTrees.Any())
                     {
                         lvTrees.ItemsSource = otherTrees;
-                        txtNoTrees.Visibility = Visibility.Collapsed;
                     }
                     else
                     {
                         lvTrees.ItemsSource = null;
-                        txtNoTrees.Visibility = Visibility.Visible;
                     }
                 }
             }
@@ -164,6 +179,11 @@ namespace Genealogy.Pages
         private void ReportsButton_Click(object sender, RoutedEventArgs e)
         {
             NavigationService.Navigate(new ReportsPage());
+        }
+
+        private void UsersButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new UsersPage());
         }
 
         private void CreateTreeButton_Click(object sender, RoutedEventArgs e)

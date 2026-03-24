@@ -625,15 +625,24 @@ namespace Genealogy.Pages
 
         private void ReadStory_Click(object sender, RoutedEventArgs e)
         {
-            var btn = sender as Button;
-            if (btn?.Tag != null)
+            var button = sender as Button;
+            if (button?.Tag == null) return;
+
+            int storyId = (int)button.Tag;
+
+            using (var context = new GenealogyDBEntities())
             {
-                int storyId = (int)btn.Tag;
-                var story = stories.FirstOrDefault(s => s.Id == storyId);
+                var story = context.Stories.FirstOrDefault(s => s.Id == storyId);
                 if (story != null)
                 {
-                    MessageBox.Show($"{story.Title}\n\n{story.Content}", "История",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    var person = context.Persons.FirstOrDefault(p => p.Id == story.PersonId);
+                    string personName = person != null ? $"{person.LastName} {person.FirstName}" : "Неизвестно";
+
+                    var storyWindow = new StoryDetailWindow(storyId, story.PersonId, personName)
+                    {
+                        Owner = Window.GetWindow(this)
+                    };
+                    storyWindow.ShowDialog();
                 }
             }
         }

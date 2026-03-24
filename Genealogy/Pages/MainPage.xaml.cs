@@ -36,7 +36,7 @@ namespace Genealogy.Pages
         private string currentSearchText = "";
         private List<Persons> allPersons = new List<Persons>();
         private Dictionary<int, Point> currentPositions = new Dictionary<int, Point>();
-        private System.Windows.Threading.DispatcherTimer searchNotificationTimer;
+        private System.Windows.Threading.DispatcherTimer searchTimer;
 
         // Для фильтрации
         private Dictionary<int, int> personGenerations = new Dictionary<int, int>();
@@ -69,23 +69,23 @@ namespace Genealogy.Pages
         {
             InitializeComponent();
             Loaded += Page_Loaded;
+
+            searchTimer = new System.Windows.Threading.DispatcherTimer();
+            searchTimer.Interval = TimeSpan.FromMilliseconds(500);
+            searchTimer.Tick += SearchTimer_Tick;
         }
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            // Загружаем данные сессии
             if (Session.IsGuest)
             {
                 txtUserName.Text = "Гость";
-
-                // Для гостя скрываем все кнопки редактирования
                 btnAdd.Visibility = Visibility.Collapsed;
                 btnEdit.Visibility = Visibility.Collapsed;
                 btnDelete.Visibility = Visibility.Collapsed;
                 btnSideEdit.Visibility = Visibility.Collapsed;
                 btnSideStory.Visibility = Visibility.Collapsed;
-
-                // Для гостя показываем первое доступное дерево
+                btnUsers.Visibility = Visibility.Collapsed;
                 ShowFirstAvailableTree();
                 return;
             }
@@ -94,10 +94,18 @@ namespace Genealogy.Pages
                 txtUserName.Text = Session.Username;
             }
 
-            // Устанавливаем текущее дерево из сессии для авторизованного пользователя
+            bool canEdit = Session.IsAdmin || Session.IsEditor;
+            bool isAdmin = Session.IsAdmin;
+
+            btnAdd.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
+            btnEdit.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
+            btnDelete.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
+            btnSideEdit.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
+            btnSideStory.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
+            btnUsers.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
+
             currentTreeId = Session.CurrentTreeId;
 
-            // Если дерево не выбрано (0), пробуем найти первое доступное
             if (currentTreeId == 0)
             {
                 using (var context = new GenealogyDBEntities())
@@ -119,31 +127,17 @@ namespace Genealogy.Pages
                 }
             }
 
-            // Скрываем кнопки для зрителей (не админов и не редакторов)
-            bool canEdit = Session.IsAdmin || Session.IsEditor;
-            btnAdd.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
-            btnEdit.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
-            btnDelete.Visibility = Session.IsAdmin ? Visibility.Visible : Visibility.Collapsed;
-            btnSideEdit.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
-            btnSideStory.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
-
-            // Находим ScrollViewer для возможности перетаскивания канваса
             parentScrollViewer = FindVisualChild<ScrollViewer>(this);
-
             LoadTree();
-
-            // Устанавливаем флаг, что страница загружена
             isPageLoaded = true;
         }
 
-        // Новый метод для показа первого доступного дерева гостю
         private void ShowFirstAvailableTree()
         {
             try
             {
                 using (var context = new GenealogyDBEntities())
                 {
-                    // Берем первое публичное дерево или любое первое дерево
                     var firstTree = context.FamilyTrees
                         .OrderBy(t => t.Id)
                         .FirstOrDefault();
@@ -151,16 +145,12 @@ namespace Genealogy.Pages
                     if (firstTree != null)
                     {
                         currentTreeId = firstTree.Id;
-
-                        // Находим ScrollViewer для возможности перетаскивания канваса
                         parentScrollViewer = FindVisualChild<ScrollViewer>(this);
-
                         LoadTree();
                         isPageLoaded = true;
                     }
                     else
                     {
-                        // Если нет ни одного дерева в базе
                         treeCanvas.Children.Clear();
                         var tb = new TextBlock
                         {
@@ -180,22 +170,6 @@ namespace Genealogy.Pages
             {
                 MessageBox.Show($"Ошибка загрузки дерева: {ex.Message}");
             }
-        }
-
-        private void ShowGuestMessage()
-        {
-            treeCanvas.Children.Clear();
-            var tb = new TextBlock
-            {
-                Text = "Для просмотра деревьев необходимо войти в систему",
-                FontSize = 18,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B7E6B")),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Canvas.SetLeft(tb, 400);
-            Canvas.SetTop(tb, 300);
-            treeCanvas.Children.Add(tb);
         }
 
         private void ShowNoTreesMessage()
@@ -248,16 +222,9 @@ namespace Genealogy.Pages
                                    personIds.Contains(r.Person2Id))
                         .ToList();
 
-                    // Определяем супружеские пары
                     FindSpousePairs();
-
-                    // Строим дерево семьи
                     BuildFamilyTree();
-
-                    // Рассчитываем позиции
                     CalculatePositions();
-
-                    // Рисуем связи и кнопки
                     DrawAllRelationships();
                     DrawPersonButtons();
 
@@ -284,7 +251,6 @@ namespace Genealogy.Pages
 
         private void BuildFamilyTree()
         {
-            // Создаем узлы для всех персон
             foreach (var person in allPersons)
             {
                 familyTree[person.Id] = new FamilyNode
@@ -301,7 +267,6 @@ namespace Genealogy.Pages
                 };
             }
 
-            // Заполняем связи родитель-ребенок
             foreach (var rel in allRelationships.Where(r => r.RelationshipType == 1))
             {
                 if (familyTree.ContainsKey(rel.Person1Id) && familyTree.ContainsKey(rel.Person2Id))
@@ -314,18 +279,15 @@ namespace Genealogy.Pages
                 }
             }
 
-            // Определяем поколения
             DetermineGenerations();
         }
 
         private void DetermineGenerations()
         {
-            // Находим корневые узлы (без родителей)
             var roots = familyTree.Values.Where(n => n.Parents.Count == 0).ToList();
 
             if (!roots.Any() && familyTree.Any())
             {
-                // Если нет корней, берем самую старшую персону
                 var oldest = familyTree.Values
                     .Where(n => n.Person.BirthDate.HasValue)
                     .OrderBy(n => n.Person.BirthDate)
@@ -337,7 +299,6 @@ namespace Genealogy.Pages
                     roots.Add(familyTree.Values.First());
             }
 
-            // BFS для определения поколений
             var queue = new Queue<FamilyNode>();
             foreach (var root in roots)
             {
@@ -349,7 +310,6 @@ namespace Genealogy.Pages
             {
                 var current = queue.Dequeue();
 
-                // Обрабатываем детей
                 foreach (var childId in current.Children)
                 {
                     if (familyTree.ContainsKey(childId))
@@ -369,38 +329,31 @@ namespace Genealogy.Pages
         {
             int startY = 100;
             int verticalSpacing = 180;
-            int horizontalSpacing = 250;
 
-            // Группируем по поколениям
             var generations = familyTree.Values
                 .GroupBy(n => n.Generation)
                 .OrderBy(g => g.Key)
                 .ToList();
 
-            // Сначала расставляем по поколениям
             foreach (var gen in generations)
             {
                 int genLevel = gen.Key;
                 var nodesInGen = gen.ToList();
-
-                // Группируем в семьи (супружеские пары)
                 var familiesInGen = GroupIntoFamilies(nodesInGen);
 
                 int currentX = 200;
 
                 foreach (var family in familiesInGen)
                 {
-                    if (family.Count == 2) // Супружеская пара
+                    if (family.Count == 2)
                     {
                         var person1 = family[0];
                         var person2 = family[1];
 
-                        // Сортируем по дате рождения (старший слева)
                         if (person1.Person.BirthDate > person2.Person.BirthDate)
                         {
                             person2.X = currentX;
                             person1.X = currentX + 140;
-
                             person2.Y = startY + genLevel * verticalSpacing;
                             person1.Y = startY + genLevel * verticalSpacing;
                         }
@@ -408,29 +361,25 @@ namespace Genealogy.Pages
                         {
                             person1.X = currentX;
                             person2.X = currentX + 140;
-
                             person1.Y = startY + genLevel * verticalSpacing;
                             person2.Y = startY + genLevel * verticalSpacing;
                         }
 
                         person1.IsPlaced = true;
                         person2.IsPlaced = true;
-
                         currentX += 280;
                     }
-                    else if (family.Count == 1) // Одиночная персона
+                    else if (family.Count == 1)
                     {
                         var person = family[0];
                         person.X = currentX + 70;
                         person.Y = startY + genLevel * verticalSpacing;
                         person.IsPlaced = true;
-
                         currentX += 200;
                     }
                 }
             }
 
-            // Центрируем детей относительно родителей
             foreach (var node in familyTree.Values.OrderByDescending(n => n.Generation))
             {
                 if (node.Children.Any())
@@ -442,18 +391,15 @@ namespace Genealogy.Pages
 
                     if (children.Any())
                     {
-                        // Находим минимальную и максимальную X среди детей
                         double minX = children.Min(c => c.X);
                         double maxX = children.Max(c => c.X);
                         double centerX = (minX + maxX) / 2;
 
-                        // Центрируем родителя (или пару родителей)
                         if (node.SpouseId.HasValue && familyTree.ContainsKey(node.SpouseId.Value))
                         {
                             var spouse = familyTree[node.SpouseId.Value];
                             double parentCenterX = (node.X + spouse.X) / 2;
                             double offset = centerX - parentCenterX;
-
                             node.X += offset;
                             spouse.X += offset;
                         }
@@ -499,13 +445,11 @@ namespace Genealogy.Pages
         {
             if (treeCanvas == null) return;
 
-            // Рисуем родительские связи
             foreach (var rel in allRelationships.Where(r => r.RelationshipType == 1))
             {
                 DrawRelationshipLine(rel);
             }
 
-            // Рисуем супружеские связи
             foreach (var rel in allRelationships.Where(r => r.RelationshipType == 2))
             {
                 DrawRelationshipLine(rel);
@@ -535,7 +479,6 @@ namespace Genealogy.Pages
                 Tag = $"line_{rel.Person1Id}_{rel.Person2Id}"
             };
 
-            // Для родительских связей рисуем пунктиром
             if (rel.RelationshipType == 1)
             {
                 line.StrokeDashArray = new DoubleCollection { 2, 2 };
@@ -547,9 +490,9 @@ namespace Genealogy.Pages
 
         private Brush GetLineColor(int type)
         {
-            if (type == 1) // Родитель-ребенок
+            if (type == 1)
                 return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5C4E3D"));
-            else if (type == 2) // Супруги
+            else if (type == 2)
                 return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8FAA7A"));
             else
                 return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B7E6B"));
@@ -607,14 +550,11 @@ namespace Genealogy.Pages
             }
         }
 
-        // ==================== ФИЛЬТРАЦИЯ ПО ПОКОЛЕНИЯМ ====================
+        // ==================== ФИЛЬТРАЦИЯ ====================
 
         private void Filter_Changed(object sender, SelectionChangedEventArgs e)
         {
-            if (!isPageLoaded || treeCanvas == null || personButtons == null || !personButtons.Any())
-            {
-                return;
-            }
+            if (!isPageLoaded || treeCanvas == null || personButtons == null || !personButtons.Any()) return;
 
             if (cmbFilter.SelectedItem == null) return;
 
@@ -650,26 +590,15 @@ namespace Genealogy.Pages
             if (treeCanvas == null) return;
 
             foreach (var btn in personButtons.Values)
-            {
-                if (btn != null)
-                    btn.Visibility = Visibility.Visible;
-            }
+                if (btn != null) btn.Visibility = Visibility.Visible;
 
             foreach (var child in treeCanvas.Children)
-            {
-                if (child is Line line)
-                {
-                    line.Visibility = Visibility.Visible;
-                }
-            }
+                if (child is Line line) line.Visibility = Visibility.Visible;
         }
 
         private void ApplyGenerationFilter(int generationLevel)
         {
-            if (treeCanvas == null || familyTree == null || !familyTree.Any() || personButtons == null)
-            {
-                return;
-            }
+            if (treeCanvas == null || familyTree == null || !familyTree.Any() || personButtons == null) return;
 
             var personIdsInGeneration = familyTree.Values
                 .Where(n => n.Generation == generationLevel)
@@ -677,24 +606,16 @@ namespace Genealogy.Pages
                 .ToHashSet();
 
             foreach (var btn in personButtons.Values)
-            {
-                if (btn != null)
-                    btn.Visibility = Visibility.Collapsed;
-            }
+                if (btn != null) btn.Visibility = Visibility.Collapsed;
 
             foreach (var personId in personIdsInGeneration)
-            {
                 if (personButtons.ContainsKey(personId) && personButtons[personId] != null)
-                {
                     personButtons[personId].Visibility = Visibility.Visible;
-                }
-            }
 
             foreach (var child in treeCanvas.Children)
             {
                 if (child is Line line)
                 {
-                    // Показываем линии только между видимыми персонами
                     if (line.Tag != null)
                     {
                         string tag = line.Tag.ToString();
@@ -703,15 +624,8 @@ namespace Genealogy.Pages
                         {
                             int id1 = int.Parse(parts[1]);
                             int id2 = int.Parse(parts[2]);
-
-                            if (personIdsInGeneration.Contains(id1) && personIdsInGeneration.Contains(id2))
-                            {
-                                line.Visibility = Visibility.Visible;
-                            }
-                            else
-                            {
-                                line.Visibility = Visibility.Collapsed;
-                            }
+                            line.Visibility = (personIdsInGeneration.Contains(id1) && personIdsInGeneration.Contains(id2))
+                                ? Visibility.Visible : Visibility.Collapsed;
                         }
                     }
                     else
@@ -724,18 +638,10 @@ namespace Genealogy.Pages
 
         // ==================== ПОИСК ====================
 
-        private void SearchButton_Click(object sender, RoutedEventArgs e)
+        private void SearchTimer_Tick(object sender, EventArgs e)
         {
+            searchTimer.Stop();
             PerformSearch();
-        }
-
-        private void txtSearch_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                PerformSearch();
-                e.Handled = true;
-            }
         }
 
         private void txtSearch_TextChanged(object sender, TextChangedEventArgs e)
@@ -745,16 +651,24 @@ namespace Genealogy.Pages
             if (txtSearch.Text != "Поиск..." && !string.IsNullOrWhiteSpace(txtSearch.Text))
             {
                 btnClearSearch.Visibility = Visibility.Visible;
+                searchTimer.Stop();
+                searchTimer.Start();
             }
             else
             {
                 btnClearSearch.Visibility = Visibility.Collapsed;
+                searchTimer.Stop();
+                ClearSearchHighlight();
+                currentSearchText = "";
+                txtSearch.ToolTip = null;
+                HideNoResultsNotification();
             }
         }
 
         private void ClearSearch_Click(object sender, RoutedEventArgs e)
         {
             txtSearch.Text = "Поиск...";
+            searchTimer.Stop();
             ClearSearchHighlight();
             currentSearchText = "";
             txtSearch.ToolTip = null;
@@ -827,13 +741,6 @@ namespace Genealogy.Pages
         {
             if (treeCanvas == null) return;
 
-            if (searchNotificationTimer != null)
-            {
-                searchNotificationTimer.Stop();
-                searchNotificationTimer.Tick -= Timer_Tick;
-                searchNotificationTimer = null;
-            }
-
             HideNoResultsNotification();
 
             Border notificationBorder = new Border
@@ -892,21 +799,14 @@ namespace Genealogy.Pages
 
             treeCanvas.Children.Add(notificationBorder);
 
-            searchNotificationTimer = new System.Windows.Threading.DispatcherTimer();
-            searchNotificationTimer.Interval = TimeSpan.FromSeconds(3);
-            searchNotificationTimer.Tick += Timer_Tick;
-            searchNotificationTimer.Start();
-        }
-
-        private void Timer_Tick(object sender, EventArgs e)
-        {
-            if (searchNotificationTimer != null)
+            var hideTimer = new System.Windows.Threading.DispatcherTimer();
+            hideTimer.Interval = TimeSpan.FromSeconds(3);
+            hideTimer.Tick += (s, args) =>
             {
-                searchNotificationTimer.Stop();
-                searchNotificationTimer.Tick -= Timer_Tick;
-                searchNotificationTimer = null;
-            }
-            HideNoResultsNotification();
+                hideTimer.Stop();
+                HideNoResultsNotification();
+            };
+            hideTimer.Start();
         }
 
         private void HideNoResultsNotification()
@@ -942,7 +842,6 @@ namespace Genealogy.Pages
 
         private void PersonButton_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Гости и зрители не могут перетаскивать
             if (Session.IsGuest || !(Session.IsAdmin || Session.IsEditor))
             {
                 e.Handled = true;
@@ -992,14 +891,10 @@ namespace Genealogy.Pages
         {
             if (!isDragging || draggedButton == null) return;
 
-            if (draggedButton.Tag is int personId)
+            if (draggedButton.Tag is int personId && familyTree.ContainsKey(personId))
             {
-                // Обновляем позицию в familyTree
-                if (familyTree.ContainsKey(personId))
-                {
-                    familyTree[personId].X = Canvas.GetLeft(draggedButton);
-                    familyTree[personId].Y = Canvas.GetTop(draggedButton);
-                }
+                familyTree[personId].X = Canvas.GetLeft(draggedButton);
+                familyTree[personId].Y = Canvas.GetTop(draggedButton);
             }
 
             Canvas.SetZIndex(draggedButton, 1);
@@ -1077,19 +972,14 @@ namespace Genealogy.Pages
             selectedPersonId = personId;
 
             foreach (var button in personButtons.Values)
-            {
-                if (button != null)
-                    button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0"));
-            }
+                if (button != null) button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0"));
 
             btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#AFC09A"));
-
             ShowPersonDetails(personId);
         }
 
         private void PersonButton_RightClick(object sender, MouseButtonEventArgs e)
         {
-            // Гости не могут вызывать контекстное меню
             if (Session.IsGuest)
             {
                 e.Handled = true;
@@ -1104,7 +994,6 @@ namespace Genealogy.Pages
 
             var contextMenu = new ContextMenu();
 
-            // Редактирование доступно админам и редакторам
             if (Session.IsAdmin || Session.IsEditor)
             {
                 var editItem = new MenuItem { Header = "Редактировать" };
@@ -1112,7 +1001,6 @@ namespace Genealogy.Pages
                 contextMenu.Items.Add(editItem);
             }
 
-            // Добавление истории доступно админам и редакторам
             if (Session.IsAdmin || Session.IsEditor)
             {
                 var storyItem = new MenuItem { Header = "Добавить историю" };
@@ -1120,12 +1008,9 @@ namespace Genealogy.Pages
                 contextMenu.Items.Add(storyItem);
             }
 
-            // Удаление доступно только админам
             if (Session.IsAdmin)
             {
-                if (contextMenu.Items.Count > 0)
-                    contextMenu.Items.Add(new Separator());
-
+                if (contextMenu.Items.Count > 0) contextMenu.Items.Add(new Separator());
                 var deleteItem = new MenuItem { Header = "Удалить" };
                 deleteItem.Click += (s, args) => DeletePersonWithRelationships(personId);
                 contextMenu.Items.Add(deleteItem);
@@ -1185,7 +1070,6 @@ namespace Genealogy.Pages
                                 bitmap.UriSource = new Uri(fullPath);
                                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
                                 bitmap.EndInit();
-
                                 imgProfile.Source = bitmap;
                                 imgProfile.Visibility = Visibility.Visible;
                                 txtNoPhoto.Visibility = Visibility.Collapsed;
@@ -1194,7 +1078,6 @@ namespace Genealogy.Pages
                         catch { }
                     }
 
-                    // РОДИТЕЛИ
                     var parentRelations = context.Relationships
                         .Where(r => r.Person2Id == personId && r.RelationshipType == 1)
                         .Select(r => r.Person1Id)
@@ -1202,53 +1085,29 @@ namespace Genealogy.Pages
 
                     if (parentRelations.Any())
                     {
-                        var parents = context.Persons
-                            .Where(p => parentRelations.Contains(p.Id))
-                            .ToList();
-
+                        var parents = context.Persons.Where(p => parentRelations.Contains(p.Id)).ToList();
                         if (parents.Any())
                         {
                             var parentNames = new List<string>();
-                            foreach (var parent in parents)
-                            {
-                                parentNames.Add($"{parent.FirstName} {parent.LastName}");
-                            }
+                            foreach (var parent in parents) parentNames.Add($"{parent.FirstName} {parent.LastName}");
                             txtParents.Text = $"Родители: {string.Join(", ", parentNames)}";
                         }
-                        else
-                        {
-                            txtParents.Text = "Родители: нет данных";
-                        }
+                        else txtParents.Text = "Родители: нет данных";
                     }
-                    else
-                    {
-                        txtParents.Text = "Родители: нет данных";
-                    }
+                    else txtParents.Text = "Родители: нет данных";
 
-                    // СУПРУГ(А)
                     var spouseRel = context.Relationships
-                        .FirstOrDefault(r => (r.Person1Id == personId || r.Person2Id == personId)
-                                           && r.RelationshipType == 2);
+                        .FirstOrDefault(r => (r.Person1Id == personId || r.Person2Id == personId) && r.RelationshipType == 2);
 
                     if (spouseRel != null)
                     {
                         int spouseId = spouseRel.Person1Id == personId ? spouseRel.Person2Id : spouseRel.Person1Id;
                         var spouse = context.Persons.FirstOrDefault(p => p.Id == spouseId);
-                        if (spouse != null)
-                        {
-                            txtSpouse.Text = $"Супруг(а): {spouse.FirstName} {spouse.LastName}";
-                        }
-                        else
-                        {
-                            txtSpouse.Text = "Супруг(а): нет";
-                        }
+                        if (spouse != null) txtSpouse.Text = $"Супруг(а): {spouse.FirstName} {spouse.LastName}";
+                        else txtSpouse.Text = "Супруг(а): нет";
                     }
-                    else
-                    {
-                        txtSpouse.Text = "Супруг(а): нет";
-                    }
+                    else txtSpouse.Text = "Супруг(а): нет";
 
-                    // ДЕТИ
                     var childRelations = context.Relationships
                         .Where(r => r.Person1Id == personId && r.RelationshipType == 1)
                         .Select(r => r.Person2Id)
@@ -1256,28 +1115,16 @@ namespace Genealogy.Pages
 
                     if (childRelations.Any())
                     {
-                        var children = context.Persons
-                            .Where(p => childRelations.Contains(p.Id))
-                            .ToList();
-
+                        var children = context.Persons.Where(p => childRelations.Contains(p.Id)).ToList();
                         if (children.Any())
                         {
                             var childNames = new List<string>();
-                            foreach (var child in children)
-                            {
-                                childNames.Add($"{child.FirstName} {child.LastName}");
-                            }
+                            foreach (var child in children) childNames.Add($"{child.FirstName} {child.LastName}");
                             txtChildren.Text = $"Дети: {string.Join(", ", childNames)}";
                         }
-                        else
-                        {
-                            txtChildren.Text = "Дети: нет";
-                        }
+                        else txtChildren.Text = "Дети: нет";
                     }
-                    else
-                    {
-                        txtChildren.Text = "Дети: нет";
-                    }
+                    else txtChildren.Text = "Дети: нет";
                 }
             }
             catch (Exception ex)
@@ -1313,6 +1160,11 @@ namespace Genealogy.Pages
         private void ReportsButton_Click(object sender, RoutedEventArgs e)
         {
             NavigationService.Navigate(new ReportsPage());
+        }
+
+        private void UsersButton_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationService.Navigate(new UsersPage());
         }
 
         private void AddPersonButton_Click(object sender, RoutedEventArgs e)
@@ -1357,7 +1209,6 @@ namespace Genealogy.Pages
             NavigationService.Navigate(new EditPersonPage(id));
         }
 
-        // Новый метод для удаления персоны со всеми связями
         private void DeletePersonWithRelationships(int id)
         {
             var result = MessageBox.Show("Удалить эту персону?\nВсе связанные с ней записи (родственные связи, истории, медиафайлы) будут также удалены!",
@@ -1376,31 +1227,22 @@ namespace Genealogy.Pages
                             return;
                         }
 
-                        // Удаляем все родственные связи, где персона участвует
-                        var relationships = context.Relationships
-                            .Where(r => r.Person1Id == id || r.Person2Id == id)
-                            .ToList();
+                        var relationships = context.Relationships.Where(r => r.Person1Id == id || r.Person2Id == id).ToList();
                         context.Relationships.RemoveRange(relationships);
 
-                        // Удаляем все истории, связанные с персоной
                         var stories = context.Stories.Where(s => s.PersonId == id).ToList();
                         context.Stories.RemoveRange(stories);
 
-                        // Удаляем все медиа-связи
                         var mediaLinks = context.MediaLinks.Where(ml => ml.PersonId == id).ToList();
                         context.MediaLinks.RemoveRange(mediaLinks);
 
-                        // Удаляем саму персону
                         context.Persons.Remove(person);
-
                         context.SaveChanges();
 
-                        MessageBox.Show("Персона и все связанные данные удалены!", "Успех",
-                            MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Персона и все связанные данные удалены!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                        LoadTree(); // Перезагружаем дерево
+                        LoadTree();
 
-                        // Очищаем панель информации
                         txtPersonName.Text = "Выберите персону";
                         txtBirthDate.Text = "--";
                         txtDeathDate.Text = "--";
@@ -1413,8 +1255,7 @@ namespace Genealogy.Pages
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Ошибка удаления: {ex.Message}", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Ошибка удаления: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -1426,14 +1267,12 @@ namespace Genealogy.Pages
 
         private void txtSearch_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (txtSearch.Text == "Поиск...")
-                txtSearch.Text = "";
+            if (txtSearch.Text == "Поиск...") txtSearch.Text = "";
         }
 
         private void txtSearch_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtSearch.Text))
-                txtSearch.Text = "Поиск...";
+            if (string.IsNullOrWhiteSpace(txtSearch.Text)) txtSearch.Text = "Поиск...";
         }
 
         private void LogoutButton_Click(object sender, RoutedEventArgs e)
