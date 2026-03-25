@@ -19,6 +19,13 @@
 
         <!-- Конвертер для видимости кнопки удаления -->
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <!-- Стиль для ListViewItem, чтобы он занимал всю ширину -->
+        <Style TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,0,0,0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
     </Page.Resources>
 
     <Grid>
@@ -305,7 +312,8 @@
                                     <TextBlock x:Name="txtCurrentTreeDesc" 
                                                Text="Основное семейное древо"
                                                Foreground="#8B7E6B"
-                                               Margin="0,2,0,5"/>
+                                               Margin="0,2,0,5"
+                                               TextWrapping="Wrap"/>
                                     <WrapPanel>
                                         <TextBlock x:Name="txtCurrentTreeStats" 
                                                    Text="👥 12 персон  |  📖 5 историй  |  📷 23 фото"
@@ -364,12 +372,13 @@
                                    FontWeight="Bold"
                                    Margin="0,0,0,10"/>
 
-                        <!-- Список деревьев -->
+                        <!-- Список деревьев с растянутыми карточками -->
                         <ListView x:Name="lvTrees" 
                                   BorderThickness="0"
                                   Background="Transparent"
                                   ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                  MaxHeight="500">
+                                  MaxHeight="500"
+                                  HorizontalAlignment="Stretch">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="#F5F0E6"

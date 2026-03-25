@@ -7,6 +7,15 @@
         Background="#F5F0E6"
         ResizeMode="CanResize">
 
+    <Window.Resources>
+        <!-- Стиль для ListViewItem, чтобы он занимал всю ширину -->
+        <Style TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,0,0,0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -31,18 +40,20 @@
                    HorizontalAlignment="Center"
                    Margin="0,0,0,15"/>
 
-        <!-- Список дней рождения -->
+        <!-- Список дней рождения с растянутыми карточками -->
         <ListView Grid.Row="2" 
                   x:Name="lvBirthdays"
                   Background="Transparent"
                   BorderThickness="0"
-                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  HorizontalAlignment="Stretch">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Border Background="{Binding BackgroundColor}"
                             CornerRadius="5"
                             Padding="10"
-                            Margin="0,0,0,5">
+                            Margin="0,0,0,5"
+                            HorizontalAlignment="Stretch">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="80"/>
@@ -60,7 +71,8 @@
                                        Text="{Binding FullName}" 
                                        Foreground="#5C4E3D"
                                        FontWeight="SemiBold"
-                                       VerticalAlignment="Center"/>
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap"/>
 
                             <TextBlock Grid.Column="2" 
                                        Text="{Binding AgeText}" 

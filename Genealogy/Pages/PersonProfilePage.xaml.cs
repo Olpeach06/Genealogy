@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using Genealogy.AppData;
+using System.Windows.Media;
 
 namespace Genealogy.Pages
 {
@@ -408,7 +409,6 @@ namespace Genealogy.Pages
                         txtSpouse.Text = "нет";
 
                     // ========== ДЕТИ (где персона - родитель) ==========
-                    // ИСПРАВЛЕННЫЙ БЛОК С ДИАГНОСТИКОЙ
                     try
                     {
                         var childRelations = context.Relationships
@@ -511,7 +511,7 @@ namespace Genealogy.Pages
                         Title = s.Title,
                         Content = s.Content,
                         EventDate = s.EventDate,
-                        EventDateString = s.EventDate?.ToString("dd.MM.yyyy") ?? "Дата не указана",
+                        EventDateString = s.EventDate?.ToString("dd.MM.yyyy") ?? s.EventDateText ?? "Дата не указана",
                         ShortContent = s.Content.Length > 100
                             ? s.Content.Substring(0, 100) + "..."
                             : s.Content
@@ -532,8 +532,15 @@ namespace Genealogy.Pages
             {
                 using (var context = new GenealogyDBEntities())
                 {
+                    // Получаем все истории персоны
+                    var stories = context.Stories
+                        .Where(s => s.PersonId == personId)
+                        .Select(s => s.Id)
+                        .ToList();
+
+                    // Получаем все медиафайлы, связанные с этими историями
                     var mediaLinks = context.MediaLinks
-                        .Where(ml => ml.PersonId == personId)
+                        .Where(ml => ml.StoryId.HasValue && stories.Contains(ml.StoryId.Value))
                         .Select(ml => ml.MediaFileId)
                         .ToList();
 
@@ -586,12 +593,61 @@ namespace Genealogy.Pages
                     icPhotos.ItemsSource = photos;
                     icVideos.ItemsSource = videos;
                     icAudios.ItemsSource = audios;
+
+                    // Обновляем заголовки вкладок с количеством файлов
+                    UpdateTabHeaders(photos.Count, videos.Count, audios.Count);
+
+                    // Выводим отладочную информацию
+                    System.Diagnostics.Debug.WriteLine($"Загружено медиафайлов для персоны {personId}:");
+                    System.Diagnostics.Debug.WriteLine($"  - Фото: {photos.Count}");
+                    System.Diagnostics.Debug.WriteLine($"  - Видео: {videos.Count}");
+                    System.Diagnostics.Debug.WriteLine($"  - Аудио: {audios.Count}");
+                    System.Diagnostics.Debug.WriteLine($"  - Всего историй: {stories.Count}");
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка загрузки медиафайлов: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Ошибка загрузки медиафайлов: {ex.Message}");
             }
+        }
+
+        private void UpdateTabHeaders(int photoCount, int videoCount, int audioCount)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var tabControl = FindVisualChild<TabControl>(this);
+                if (tabControl != null && tabControl.Items.Count >= 3)
+                {
+                    var photoTab = tabControl.Items[0] as TabItem;
+                    var videoTab = tabControl.Items[1] as TabItem;
+                    var audioTab = tabControl.Items[2] as TabItem;
+
+                    if (photoTab != null)
+                        photoTab.Header = $"📷 Фотографии ({photoCount})";
+                    if (videoTab != null)
+                        videoTab.Header = $"🎥 Видео ({videoCount})";
+                    if (audioTab != null)
+                        audioTab.Header = $"🎵 Аудио ({audioCount})";
+                }
+            }));
+        }
+
+        private T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child != null && child is T)
+                    return (T)child;
+                else
+                {
+                    var descendant = FindVisualChild<T>(child);
+                    if (descendant != null)
+                        return descendant;
+                }
+            }
+            return null;
         }
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
@@ -619,8 +675,7 @@ namespace Genealogy.Pages
 
         private void AddMediaButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Функция добавления медиафайлов к персоне в разработке", "Информация",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            NavigationService.Navigate(new EditStoryPage(personId));
         }
 
         private void ReadStory_Click(object sender, RoutedEventArgs e)
@@ -657,7 +712,56 @@ namespace Genealogy.Pages
                 var photo = photos?.FirstOrDefault(p => p.Id == photoId);
                 if (photo != null && File.Exists(photo.FilePath))
                 {
-                    System.Diagnostics.Process.Start(photo.FilePath);
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = photo.FilePath,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Не удалось открыть фото: {ex.Message}", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Файл не найден на диске!", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+        }
+
+        private void Video_Click(object sender, MouseButtonEventArgs e)
+        {
+            var border = sender as Border;
+            if (border?.Tag != null)
+            {
+                int videoId = (int)border.Tag;
+                var videos = icVideos.ItemsSource as List<VideoItem>;
+                var video = videos?.FirstOrDefault(v => v.Id == videoId);
+                if (video != null && File.Exists(video.FilePath))
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = video.FilePath,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Не удалось открыть видео: {ex.Message}", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Видеофайл не найден на диске!", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
         }
@@ -672,7 +776,24 @@ namespace Genealogy.Pages
                 var audio = audios?.FirstOrDefault(a => a.Id == audioId);
                 if (audio != null && File.Exists(audio.FilePath))
                 {
-                    System.Diagnostics.Process.Start(audio.FilePath);
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = audio.FilePath,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Не удалось открыть аудио: {ex.Message}", "Ошибка",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Аудиофайл не найден на диске!", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
         }

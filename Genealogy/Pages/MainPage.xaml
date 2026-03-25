@@ -384,7 +384,7 @@
                                    Foreground="#B7A48B"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
-                                   Visibility="Visible"/>
+                                   Visibility="Visible" Height="73"/>
                         <Image x:Name="imgProfile" 
                                Stretch="UniformToFill"
                                Visibility="Collapsed"/>
