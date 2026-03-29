@@ -1,15 +1,29 @@
-﻿using Genealogy.Classes;
+﻿using Genealogy.AppData;
+using Genealogy.Classes;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using Genealogy.AppData;
+using Genealogy.Classes;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
 
 namespace Genealogy.Pages
 {
@@ -68,14 +82,29 @@ namespace Genealogy.Pages
 
             // Проверяем права доступа
             bool canEdit = Session.IsAdmin || Session.IsEditor;
+            bool isAdmin = Session.IsAdmin;
+
             btnEdit.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
             btnAddStory.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
             btnAddStoryBottom.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
             btnAddPhoto.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
             btnAddMedia.Visibility = canEdit ? Visibility.Visible : Visibility.Collapsed;
 
+            // Кнопки "Удалить все" видны только администраторам
+            btnDeleteAllStories.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
+            btnDeleteAllMedia.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
+
             // Запускаем диагностику (можно закомментировать после отладки)
             DebugCheckDatabase();
+
+            // После загрузки всех данных добавляем обработчики контекстного меню
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                AddContextMenuToStories();
+                AddContextMenuToMedia(icPhotos, "photoBorder");
+                AddContextMenuToMedia(icVideos, "videoBorder");
+                AddContextMenuToMedia(icAudios, "audioBorder");
+            }));
         }
 
         private void ClearAllTextBlocks()
@@ -104,7 +133,6 @@ namespace Genealogy.Pages
                     System.Diagnostics.Debug.WriteLine("=== ДИАГНОСТИКА БАЗЫ ДАННЫХ ===");
                     System.Diagnostics.Debug.WriteLine("=================================");
 
-                    // Проверяем текущую персону
                     var person = context.Persons.FirstOrDefault(p => p.Id == personId);
                     if (person != null)
                     {
@@ -112,7 +140,6 @@ namespace Genealogy.Pages
                         System.Diagnostics.Debug.WriteLine($"  Пол: {person.GenderId}");
                     }
 
-                    // Все отношения для этой персоны
                     var allRels = context.Relationships
                         .Where(r => r.Person1Id == personId || r.Person2Id == personId)
                         .ToList();
@@ -133,7 +160,6 @@ namespace Genealogy.Pages
                         System.Diagnostics.Debug.WriteLine($"  Отношение {rel.Id}: {rel.Person1Id} -> {rel.Person2Id}, тип={rel.RelationshipType} ({typeName}){direction}");
                     }
 
-                    // Отношения где персона - РОДИТЕЛЬ (Person1Id) - ЭТО ДЕТИ
                     var asParent = context.Relationships
                         .Where(r => r.Person1Id == personId && r.RelationshipType == 1)
                         .ToList();
@@ -161,7 +187,6 @@ namespace Genealogy.Pages
                         System.Diagnostics.Debug.WriteLine("  Записей о детях не найдено");
                     }
 
-                    // Отношения где персона - РЕБЕНОК (Person2Id) - ЭТО РОДИТЕЛИ
                     var asChild = context.Relationships
                         .Where(r => r.Person2Id == personId && r.RelationshipType == 1)
                         .ToList();
@@ -186,7 +211,6 @@ namespace Genealogy.Pages
                         }
                     }
 
-                    // Отношения СУПРУГ(И)
                     var spouses = context.Relationships
                         .Where(r => (r.Person1Id == personId || r.Person2Id == personId) && r.RelationshipType == 2)
                         .ToList();
@@ -230,17 +254,14 @@ namespace Genealogy.Pages
                         return;
                     }
 
-                    // Формируем ФИО
                     string fullName = $"{person.LastName} {person.FirstName}";
                     if (!string.IsNullOrEmpty(person.Patronymic))
                         fullName += $" {person.Patronymic}";
                     txtFullName.Text = fullName;
 
-                    // Даты
                     txtBirthDate.Text = person.BirthDate?.ToString("dd.MM.yyyy") ?? "?";
                     txtDeathDate.Text = person.DeathDate?.ToString("dd.MM.yyyy") ?? "...";
 
-                    // Места
                     txtBirthPlace.Text = string.IsNullOrEmpty(person.BirthPlace)
                         ? "Место рождения: не указано"
                         : $"Место рождения: {person.BirthPlace}";
@@ -249,12 +270,10 @@ namespace Genealogy.Pages
                         ? "Место смерти: не указано"
                         : $"Место смерти: {person.DeathPlace}";
 
-                    // Биография
                     txtBiography.Text = string.IsNullOrEmpty(person.Biography)
                         ? "Биография не добавлена"
                         : person.Biography;
 
-                    // Пол
                     var gender = context.Genders.FirstOrDefault(g => g.Id == person.GenderId);
                     if (gender != null)
                     {
@@ -262,7 +281,6 @@ namespace Genealogy.Pages
                         txtGenderSymbol.Text = gender.Symbol ?? "👤";
                     }
 
-                    // Фото профиля из папки Media
                     if (!string.IsNullOrEmpty(person.ProfilePhotoPath))
                     {
                         try
@@ -293,7 +311,6 @@ namespace Genealogy.Pages
                         }
                     }
 
-                    // Сбрасываем обработчики
                     txtFather.MouseLeftButtonUp -= TextBlock_MouseLeftButtonUp;
                     txtMother.MouseLeftButtonUp -= TextBlock_MouseLeftButtonUp;
                     txtSpouse.MouseLeftButtonUp -= TextBlock_MouseLeftButtonUp;
@@ -315,14 +332,13 @@ namespace Genealogy.Pages
                             var parent = context.Persons.FirstOrDefault(p => p.Id == parentId);
                             if (parent != null)
                             {
-                                if (parent.GenderId == 1) // Мужской
+                                if (parent.GenderId == 1)
                                     fatherId = parent.Id;
-                                else if (parent.GenderId == 2) // Женский
+                                else if (parent.GenderId == 2)
                                     motherId = parent.Id;
                             }
                         }
 
-                        // Если не удалось определить по полу, берем первого как отца, второго как мать
                         if (fatherId == null && parentRelations.Count >= 1)
                         {
                             var firstParent = context.Persons.FirstOrDefault(p => p.Id == parentRelations[0]);
@@ -337,7 +353,6 @@ namespace Genealogy.Pages
                                 motherId = secondParent.Id;
                         }
 
-                        // Отображаем отца
                         if (fatherId.HasValue)
                         {
                             var father = context.Persons.FirstOrDefault(p => p.Id == fatherId);
@@ -357,7 +372,6 @@ namespace Genealogy.Pages
                         else
                             txtFather.Text = "Отец: не указан";
 
-                        // Отображаем мать
                         if (motherId.HasValue)
                         {
                             var mother = context.Persons.FirstOrDefault(p => p.Id == motherId);
@@ -532,13 +546,11 @@ namespace Genealogy.Pages
             {
                 using (var context = new GenealogyDBEntities())
                 {
-                    // Получаем все истории персоны
                     var stories = context.Stories
                         .Where(s => s.PersonId == personId)
                         .Select(s => s.Id)
                         .ToList();
 
-                    // Получаем все медиафайлы, связанные с этими историями
                     var mediaLinks = context.MediaLinks
                         .Where(ml => ml.StoryId.HasValue && stories.Contains(ml.StoryId.Value))
                         .Select(ml => ml.MediaFileId)
@@ -594,10 +606,8 @@ namespace Genealogy.Pages
                     icVideos.ItemsSource = videos;
                     icAudios.ItemsSource = audios;
 
-                    // Обновляем заголовки вкладок с количеством файлов
                     UpdateTabHeaders(photos.Count, videos.Count, audios.Count);
 
-                    // Выводим отладочную информацию
                     System.Diagnostics.Debug.WriteLine($"Загружено медиафайлов для персоны {personId}:");
                     System.Diagnostics.Debug.WriteLine($"  - Фото: {photos.Count}");
                     System.Diagnostics.Debug.WriteLine($"  - Видео: {videos.Count}");
@@ -649,6 +659,339 @@ namespace Genealogy.Pages
             }
             return null;
         }
+
+        // ==================== КОНТЕКСТНОЕ МЕНЮ ДЛЯ ИСТОРИЙ ====================
+
+        private void AddContextMenuToStories()
+        {
+            if (lvStories?.ItemsSource == null) return;
+
+            var containerGenerator = lvStories.ItemContainerGenerator;
+            for (int i = 0; i < lvStories.Items.Count; i++)
+            {
+                var item = lvStories.Items[i];
+                var container = containerGenerator.ContainerFromItem(item) as ListViewItem;
+                if (container != null)
+                {
+                    var border = FindVisualChildByName<Border>(container, "storyBorder");
+                    if (border != null)
+                    {
+                        border.Tag = ((StoryItem)item).Id;
+                        border.MouseRightButtonDown += Story_MouseRightButtonDown;
+                    }
+                }
+            }
+        }
+
+        private void Story_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            var border = sender as Border;
+            if (border?.Tag == null) return;
+
+            int storyId = (int)border.Tag;
+
+            var contextMenu = new ContextMenu();
+
+            if (Session.IsAdmin || Session.IsEditor)
+            {
+                var editItem = new MenuItem { Header = "✎ Редактировать историю" };
+                editItem.Click += (s, args) => EditStory(storyId);
+                contextMenu.Items.Add(editItem);
+            }
+
+            if (Session.IsAdmin)
+            {
+                var deleteItem = new MenuItem { Header = "🗑 Удалить историю" };
+                deleteItem.Click += (s, args) => DeleteStoryById(storyId);
+                contextMenu.Items.Add(deleteItem);
+            }
+
+            if (contextMenu.Items.Count > 0)
+            {
+                border.ContextMenu = contextMenu;
+                contextMenu.IsOpen = true;
+            }
+
+            e.Handled = true;
+        }
+
+        private void EditStory(int storyId)
+        {
+            NavigationService.Navigate(new EditStoryPage(personId, storyId));
+        }
+
+        private async void DeleteStoryById(int storyId)
+        {
+            var result = MessageBox.Show("Вы уверены, что хотите удалить эту историю?\nВсе прикрепленные к ней медиафайлы также будут удалены!",
+                "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    using (var context = new GenealogyDBEntities())
+                    {
+                        var story = context.Stories.FirstOrDefault(s => s.Id == storyId);
+                        if (story == null)
+                        {
+                            MessageBox.Show("История не найдена!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
+                        }
+
+                        var mediaLinks = context.MediaLinks.Where(ml => ml.StoryId == storyId).ToList();
+                        var mediaFileIds = mediaLinks.Select(ml => ml.MediaFileId).ToList();
+
+                        context.MediaLinks.RemoveRange(mediaLinks);
+
+                        var mediaFiles = context.MediaFiles.Where(mf => mediaFileIds.Contains(mf.Id)).ToList();
+
+                        foreach (var mediaFile in mediaFiles)
+                        {
+                            FileHelper.DeleteFile(mediaFile.FilePath);
+                        }
+
+                        context.MediaFiles.RemoveRange(mediaFiles);
+                        context.Stories.Remove(story);
+
+                        await context.SaveChangesAsync();
+
+                        MessageBox.Show("История успешно удалена!", "Успех",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        LoadStories();
+                        LoadMediaFiles();
+                        Dispatcher.BeginInvoke(new Action(() => AddContextMenuToStories()));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при удалении истории: {ex.Message}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        // ==================== КОНТЕКСТНОЕ МЕНЮ ДЛЯ МЕДИАФАЙЛОВ ====================
+
+        private void AddContextMenuToMedia(ItemsControl itemsControl, string borderName)
+        {
+            if (itemsControl?.ItemsSource == null) return;
+
+            var containerGenerator = itemsControl.ItemContainerGenerator;
+            for (int i = 0; i < itemsControl.Items.Count; i++)
+            {
+                var item = itemsControl.Items[i];
+                var container = containerGenerator.ContainerFromItem(item) as FrameworkElement;
+                if (container != null)
+                {
+                    var border = FindVisualChildByName<Border>(container, borderName);
+                    if (border != null)
+                    {
+                        int mediaId = 0;
+                        if (item is PhotoItem photo) mediaId = photo.Id;
+                        else if (item is VideoItem video) mediaId = video.Id;
+                        else if (item is AudioItem audio) mediaId = audio.Id;
+
+                        border.Tag = mediaId;
+                        border.MouseRightButtonDown += Media_MouseRightButtonDown;
+                    }
+                }
+            }
+        }
+
+        private void Media_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            var border = sender as Border;
+            if (border?.Tag == null) return;
+
+            int mediaId = (int)border.Tag;
+
+            var contextMenu = new ContextMenu();
+
+            if (Session.IsAdmin)
+            {
+                var deleteItem = new MenuItem { Header = "🗑 Удалить" };
+                deleteItem.Click += (s, args) => DeleteMediaFileById(mediaId);
+                contextMenu.Items.Add(deleteItem);
+            }
+
+            if (contextMenu.Items.Count > 0)
+            {
+                border.ContextMenu = contextMenu;
+                contextMenu.IsOpen = true;
+            }
+
+            e.Handled = true;
+        }
+
+        private async void DeleteMediaFileById(int mediaFileId)
+        {
+            var result = MessageBox.Show("Вы уверены, что хотите удалить этот медиафайл?",
+                "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                await DeleteMediaFile(mediaFileId, "медиафайл");
+            }
+        }
+
+        // ==================== УДАЛЕНИЕ ВСЕХ ====================
+
+        private async void DeleteAllStories_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show("Вы уверены, что хотите удалить ВСЕ истории этой персоны?\nВсе прикрепленные медиафайлы также будут удалены!",
+                "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    using (var context = new GenealogyDBEntities())
+                    {
+                        var stories = context.Stories.Where(s => s.PersonId == personId).ToList();
+                        var storyIds = stories.Select(s => s.Id).ToList();
+
+                        var mediaLinks = context.MediaLinks
+                            .Where(ml => ml.StoryId.HasValue && storyIds.Contains(ml.StoryId.Value))
+                            .ToList();
+
+                        var mediaFileIds = mediaLinks.Select(ml => ml.MediaFileId).ToList();
+                        var mediaFiles = context.MediaFiles.Where(mf => mediaFileIds.Contains(mf.Id)).ToList();
+
+                        context.MediaLinks.RemoveRange(mediaLinks);
+
+                        foreach (var file in mediaFiles)
+                        {
+                            FileHelper.DeleteFile(file.FilePath);
+                        }
+
+                        context.MediaFiles.RemoveRange(mediaFiles);
+                        context.Stories.RemoveRange(stories);
+
+                        await context.SaveChangesAsync();
+
+                        MessageBox.Show("Все истории успешно удалены!", "Успех",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        LoadStories();
+                        LoadMediaFiles();
+                        Dispatcher.BeginInvoke(new Action(() => AddContextMenuToStories()));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при удалении всех историй: {ex.Message}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void DeleteAllMedia_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show("Вы уверены, что хотите удалить ВСЕ медиафайлы, связанные с этой персоной?",
+                "Подтверждение удаления", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    using (var context = new GenealogyDBEntities())
+                    {
+                        var stories = context.Stories.Where(s => s.PersonId == personId).Select(s => s.Id).ToList();
+
+                        var mediaLinks = context.MediaLinks
+                            .Where(ml => ml.StoryId.HasValue && stories.Contains(ml.StoryId.Value))
+                            .ToList();
+
+                        var mediaFileIds = mediaLinks.Select(ml => ml.MediaFileId).ToList();
+                        var mediaFiles = context.MediaFiles.Where(mf => mediaFileIds.Contains(mf.Id)).ToList();
+
+                        foreach (var file in mediaFiles)
+                        {
+                            FileHelper.DeleteFile(file.FilePath);
+                        }
+
+                        context.MediaLinks.RemoveRange(mediaLinks);
+                        context.MediaFiles.RemoveRange(mediaFiles);
+
+                        await context.SaveChangesAsync();
+
+                        MessageBox.Show("Все медиафайлы успешно удалены!", "Успех",
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        LoadMediaFiles();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при удалении всех медиафайлов: {ex.Message}", "Ошибка",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        // ==================== УДАЛЕНИЕ МЕДИАФАЙЛА ====================
+
+        private async Task DeleteMediaFile(int mediaFileId, string typeName)
+        {
+            try
+            {
+                using (var context = new GenealogyDBEntities())
+                {
+                    var mediaFile = context.MediaFiles.FirstOrDefault(mf => mf.Id == mediaFileId);
+                    if (mediaFile == null)
+                    {
+                        MessageBox.Show("Файл не найден!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var mediaLinks = context.MediaLinks.Where(ml => ml.MediaFileId == mediaFileId).ToList();
+                    context.MediaLinks.RemoveRange(mediaLinks);
+
+                    FileHelper.DeleteFile(mediaFile.FilePath);
+                    context.MediaFiles.Remove(mediaFile);
+
+                    await context.SaveChangesAsync();
+
+                    MessageBox.Show($"{typeName} успешно удалено!", "Успех",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    LoadMediaFiles();
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        AddContextMenuToMedia(icPhotos, "photoBorder");
+                        AddContextMenuToMedia(icVideos, "videoBorder");
+                        AddContextMenuToMedia(icAudios, "audioBorder");
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при удалении {typeName}: {ex.Message}", "Ошибка",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЙ МЕТОД ====================
+
+        private T FindVisualChildByName<T>(DependencyObject parent, string name) where T : FrameworkElement
+        {
+            if (parent == null) return null;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T element && element.Name == name)
+                    return element;
+
+                var result = FindVisualChildByName<T>(child, name);
+                if (result != null)
+                    return result;
+            }
+            return null;
+        }
+
+        // ==================== ОБРАБОТЧИКИ КНОПОК ====================
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
         {
@@ -704,10 +1047,10 @@ namespace Genealogy.Pages
 
         private void Photo_Click(object sender, MouseButtonEventArgs e)
         {
-            var img = sender as Image;
-            if (img?.Tag != null)
+            var border = sender as Border;
+            if (border?.Tag != null)
             {
-                int photoId = (int)img.Tag;
+                int photoId = (int)border.Tag;
                 var photos = icPhotos.ItemsSource as List<PhotoItem>;
                 var photo = photos?.FirstOrDefault(p => p.Id == photoId);
                 if (photo != null && File.Exists(photo.FilePath))
@@ -766,12 +1109,12 @@ namespace Genealogy.Pages
             }
         }
 
-        private void PlayAudio_Click(object sender, RoutedEventArgs e)
+        private void PlayAudio_Click(object sender, MouseButtonEventArgs e)
         {
-            var btn = sender as Button;
-            if (btn?.Tag != null)
+            var border = sender as Border;
+            if (border?.Tag != null)
             {
-                int audioId = (int)btn.Tag;
+                int audioId = (int)border.Tag;
                 var audios = icAudios.ItemsSource as List<AudioItem>;
                 var audio = audios?.FirstOrDefault(a => a.Id == audioId);
                 if (audio != null && File.Exists(audio.FilePath))

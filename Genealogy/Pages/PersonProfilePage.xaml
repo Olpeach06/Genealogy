@@ -290,10 +290,28 @@
                     <Border Grid.Column="0" 
                             Style="{StaticResource BlockStyle}">
                         <StackPanel>
-                            <TextBlock Text="📚 Истории и воспоминания" 
-                                       FontSize="18" FontWeight="SemiBold"
-                                       Foreground="#5C4E3D"
-                                       Margin="0,0,0,15"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" 
+                                           Text="📚 Истории и воспоминания" 
+                                           FontSize="18" FontWeight="SemiBold"
+                                           Foreground="#5C4E3D"
+                                           Margin="0,0,0,15"/>
+                                <Button Grid.Column="1"
+                                        x:Name="btnDeleteAllStories"
+                                        Content="🗑 Удалить все"
+                                        Width="100" Height="28"
+                                        Background="#E57373"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        FontSize="11"
+                                        Visibility="Collapsed"
+                                        Click="DeleteAllStories_Click"
+                                        ToolTip="Удалить все истории персоны"/>
+                            </Grid>
 
                             <!-- Список историй с фиксированной высотой -->
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Height="280">
@@ -304,11 +322,13 @@
                                           HorizontalAlignment="Stretch">
                                     <ListView.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#F5F0E6"
+                                            <Border x:Name="storyBorder"
+                                                    Background="#F5F0E6"
                                                     CornerRadius="8"
                                                     Padding="15"
                                                     Margin="0,0,0,10"
-                                                    HorizontalAlignment="Stretch">
+                                                    HorizontalAlignment="Stretch"
+                                                    Tag="{Binding Id}">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>
@@ -342,6 +362,7 @@
                                                             Foreground="White"
                                                             BorderThickness="0"
                                                             Padding="10,5"
+                                                            Margin="5,0,0,0"
                                                             Tag="{Binding Id}"
                                                             Click="ReadStory_Click"/>
                                                 </Grid>
@@ -369,15 +390,33 @@
                     <Border Grid.Column="2" 
                             Style="{StaticResource BlockStyle}">
                         <StackPanel>
-                            <TextBlock Text="🖼️ Медиафайлы" 
-                                       FontSize="18" FontWeight="SemiBold"
-                                       Foreground="#5C4E3D"
-                                       Margin="0,0,0,15"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" 
+                                           Text="🖼️ Медиафайлы" 
+                                           FontSize="18" FontWeight="SemiBold"
+                                           Foreground="#5C4E3D"
+                                           Margin="0,0,0,15"/>
+                                <Button Grid.Column="1"
+                                        x:Name="btnDeleteAllMedia"
+                                        Content="🗑 Удалить все"
+                                        Width="100" Height="28"
+                                        Background="#E57373"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        FontSize="11"
+                                        Visibility="Collapsed"
+                                        Click="DeleteAllMedia_Click"
+                                        ToolTip="Удалить все медиафайлы персоны"/>
+                            </Grid>
 
                             <!-- Содержимое вкладок с фиксированной высотой -->
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Height="280">
                                 <TabControl BorderThickness="0" Background="Transparent">
-                                    <TabItem Header="Фотографии" Background="#F5F0E6">
+                                    <TabItem x:Name="tabPhotos" Header="Фотографии" Background="#F5F0E6">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="250">
                                             <ItemsControl x:Name="icPhotos" Margin="5">
                                                 <ItemsControl.ItemsPanel>
@@ -387,15 +426,18 @@
                                                 </ItemsControl.ItemsPanel>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Width="100" Height="100"
-                                                                Margin="5"
-                                                                BorderBrush="#B7A48B"
-                                                                BorderThickness="1"
-                                                                CornerRadius="5">
+                                                        <Border x:Name="photoBorder"
+                            Width="100" Height="100"
+                            Margin="5"
+                            BorderBrush="#B7A48B"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            Cursor="Hand"
+                            Tag="{Binding Id}"
+                            MouseLeftButtonDown="Photo_Click"
+                            MouseRightButtonDown="Media_MouseRightButtonDown">
                                                             <Image Source="{Binding ThumbPath}" 
-                                                                   Stretch="UniformToFill"
-                                                                   Tag="{Binding Id}"
-                                                                   MouseLeftButtonDown="Photo_Click"/>
+                               Stretch="UniformToFill"/>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
@@ -403,7 +445,7 @@
                                         </ScrollViewer>
                                     </TabItem>
 
-                                    <TabItem Header="Видео" Background="#F5F0E6">
+                                    <TabItem x:Name="tabVideos" Header="Видео" Background="#F5F0E6">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="250">
                                             <ItemsControl x:Name="icVideos" Margin="5">
                                                 <ItemsControl.ItemsPanel>
@@ -413,7 +455,8 @@
                                                 </ItemsControl.ItemsPanel>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Width="100" Height="100"
+                                                        <Border x:Name="videoBorder"
+                            Width="100" Height="100"
                             Margin="5"
                             BorderBrush="#B7A48B"
                             BorderThickness="1"
@@ -421,7 +464,8 @@
                             Background="#F5F0E6"
                             Cursor="Hand"
                             Tag="{Binding Id}"
-                            MouseLeftButtonDown="Video_Click">
+                            MouseLeftButtonDown="Video_Click"
+                            MouseRightButtonDown="Media_MouseRightButtonDown">
                                                             <StackPanel>
                                                                 <TextBlock Text="🎥" 
                                        FontSize="35"
@@ -431,7 +475,8 @@
                                        Foreground="#6B5E4A"
                                        FontSize="9"
                                        TextAlignment="Center"
-                                       TextWrapping="Wrap"/>
+                                       TextWrapping="Wrap"
+                                       MaxHeight="30"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </DataTemplate>
@@ -440,37 +485,39 @@
                                         </ScrollViewer>
                                     </TabItem>
 
-                                    <TabItem Header="Аудио" Background="#F5F0E6">
+                                    <TabItem x:Name="tabAudios" Header="Аудио" Background="#F5F0E6">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="250">
                                             <ItemsControl x:Name="icAudios" Margin="5">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Border Margin="5"
-                                                                Padding="10"
-                                                                BorderBrush="#B7A48B"
-                                                                BorderThickness="1"
-                                                                CornerRadius="5"
-                                                                HorizontalAlignment="Stretch">
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="🎵" 
-                                                                           FontSize="20"
-                                                                           Foreground="#8FAA7A"
-                                                                           Margin="0,0,10,0"/>
-                                                                <StackPanel>
-                                                                    <TextBlock Text="{Binding FileName}" 
-                                                                               Foreground="#5C4E3D"
-                                                                               FontWeight="SemiBold"
-                                                                               TextWrapping="Wrap"/>
-                                                                    <Button Content="▶ Слушать" 
-                                                                            Background="Transparent"
-                                                                            BorderBrush="#B7A48B"
-                                                                            Foreground="#6B5E4A"
-                                                                            BorderThickness="1"
-                                                                            Padding="5"
-                                                                            Tag="{Binding Id}"
-                                                                            Click="PlayAudio_Click"/>
-                                                                </StackPanel>
-                                                            </StackPanel>
+                                                        <Border x:Name="audioBorder"
+                            Margin="5"
+                            Padding="10"
+                            BorderBrush="#B7A48B"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            HorizontalAlignment="Stretch"
+                            Background="#F5F0E6"
+                            Cursor="Hand"
+                            Tag="{Binding Id}"
+                            MouseLeftButtonDown="PlayAudio_Click"
+                            MouseRightButtonDown="Media_MouseRightButtonDown">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Grid.Column="0" 
+                                       Text="🎵" 
+                                       FontSize="20"
+                                       Foreground="#8FAA7A"
+                                       Margin="0,0,10,0"/>
+                                                                <TextBlock Grid.Column="1" 
+                                       Text="{Binding FileName}" 
+                                       Foreground="#5C4E3D"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap"/>
+                                                            </Grid>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>

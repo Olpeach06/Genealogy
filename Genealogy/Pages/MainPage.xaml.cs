@@ -14,6 +14,16 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Genealogy.Classes;
 using Genealogy.AppData;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Navigation;
+using Genealogy.Classes;
+using Genealogy.AppData;
 
 namespace Genealogy.Pages
 {
@@ -21,12 +31,12 @@ namespace Genealogy.Pages
     {
         private int currentTreeId = 0;
         private int? selectedPersonId = null;
-        private Dictionary<int, Button> personButtons = new Dictionary<int, Button>();
+        private Dictionary<int, Border> personCards = new Dictionary<int, Border>(); // Border вместо Button
         private double zoomLevel = 1.0;
 
         // Для перетаскивания
         private bool isDragging = false;
-        private Button draggedButton = null;
+        private Border draggedCard = null; // Border вместо Button
         private Point dragStartPoint;
         private bool isCanvasDragging = false;
         private Point canvasDragStart;
@@ -35,7 +45,6 @@ namespace Genealogy.Pages
         // Для поиска
         private string currentSearchText = "";
         private List<Persons> allPersons = new List<Persons>();
-        private Dictionary<int, Point> currentPositions = new Dictionary<int, Point>();
         private System.Windows.Threading.DispatcherTimer searchTimer;
 
         // Для фильтрации
@@ -44,7 +53,6 @@ namespace Genealogy.Pages
         private int? currentGenerationFilter = null;
 
         // Для группировки семей
-        private Dictionary<int, List<int>> families = new Dictionary<int, List<int>>();
         private Dictionary<int, int> spousePairs = new Dictionary<int, int>();
         private Dictionary<int, FamilyNode> familyTree = new Dictionary<int, FamilyNode>();
 
@@ -62,7 +70,6 @@ namespace Genealogy.Pages
             public int Generation { get; set; }
             public double X { get; set; }
             public double Y { get; set; }
-            public bool IsPlaced { get; set; }
         }
 
         public MainPage()
@@ -193,10 +200,9 @@ namespace Genealogy.Pages
             if (treeCanvas == null) return;
 
             treeCanvas.Children.Clear();
-            personButtons.Clear();
+            personCards.Clear();
             allPersons.Clear();
             allRelationships.Clear();
-            families.Clear();
             spousePairs.Clear();
             familyTree.Clear();
             HideNoResultsNotification();
@@ -224,9 +230,10 @@ namespace Genealogy.Pages
 
                     FindSpousePairs();
                     BuildFamilyTree();
+                    DetermineGenerations();
                     CalculatePositions();
                     DrawAllRelationships();
-                    DrawPersonButtons();
+                    DrawPersonCards();
 
                     if (currentGenerationFilter.HasValue)
                     {
@@ -260,10 +267,9 @@ namespace Genealogy.Pages
                     SpouseId = spousePairs.ContainsKey(person.Id) ? spousePairs[person.Id] : (int?)null,
                     Children = new List<int>(),
                     Parents = new List<int>(),
-                    Generation = 0,
+                    Generation = -1,
                     X = 0,
-                    Y = 0,
-                    IsPlaced = false
+                    Y = 0
                 };
             }
 
@@ -278,15 +284,13 @@ namespace Genealogy.Pages
                         familyTree[rel.Person2Id].Parents.Add(rel.Person1Id);
                 }
             }
-
-            DetermineGenerations();
         }
 
         private void DetermineGenerations()
         {
             var roots = familyTree.Values.Where(n => n.Parents.Count == 0).ToList();
 
-            if (!roots.Any() && familyTree.Any())
+            if (!roots.Any())
             {
                 var oldest = familyTree.Values
                     .Where(n => n.Person.BirthDate.HasValue)
@@ -295,9 +299,11 @@ namespace Genealogy.Pages
 
                 if (oldest != null)
                     roots.Add(oldest);
-                else
+                else if (familyTree.Any())
                     roots.Add(familyTree.Values.First());
             }
+
+            if (!roots.Any()) return;
 
             var queue = new Queue<FamilyNode>();
             foreach (var root in roots)
@@ -312,36 +318,83 @@ namespace Genealogy.Pages
 
                 foreach (var childId in current.Children)
                 {
-                    if (familyTree.ContainsKey(childId))
+                    if (familyTree.TryGetValue(childId, out var child))
                     {
-                        var child = familyTree[childId];
-                        if (child.Generation <= current.Generation)
+                        int newGen = current.Generation + 1;
+                        if (child.Generation < newGen)
                         {
-                            child.Generation = current.Generation + 1;
+                            child.Generation = newGen;
                             queue.Enqueue(child);
                         }
                     }
                 }
             }
+
+            int maxGen = familyTree.Values.Max(n => n.Generation);
+            foreach (var node in familyTree.Values)
+            {
+                if (node.Generation == -1)
+                {
+                    if (node.Person.BirthDate.HasValue)
+                    {
+                        int year = node.Person.BirthDate.Value.Year;
+                        if (year < 1950) node.Generation = 0;
+                        else if (year < 1980) node.Generation = 1;
+                        else if (year < 2000) node.Generation = 2;
+                        else if (year < 2020) node.Generation = 3;
+                        else node.Generation = 4;
+                    }
+                    else
+                    {
+                        node.Generation = maxGen + 1;
+                    }
+                }
+            }
+
+            personGenerations = familyTree.ToDictionary(kv => kv.Key, kv => kv.Value.Generation);
         }
 
         private void CalculatePositions()
         {
-            int startY = 100;
-            int verticalSpacing = 180;
-
             var generations = familyTree.Values
                 .GroupBy(n => n.Generation)
                 .OrderBy(g => g.Key)
                 .ToList();
 
-            foreach (var gen in generations)
-            {
-                int genLevel = gen.Key;
-                var nodesInGen = gen.ToList();
-                var familiesInGen = GroupIntoFamilies(nodesInGen);
+            int startX = 300;
+            int startY = 100;
+            int verticalSpacing = 180;
 
-                int currentX = 200;
+            foreach (var genGroup in generations)
+            {
+                int genLevel = genGroup.Key;
+                var nodesInGen = genGroup.ToList();
+                nodesInGen = nodesInGen.OrderBy(n => n.Person.BirthDate).ToList();
+
+                var familiesInGen = new List<List<FamilyNode>>();
+                var used = new HashSet<int>();
+
+                foreach (var node in nodesInGen)
+                {
+                    if (used.Contains(node.PersonId)) continue;
+
+                    var family = new List<FamilyNode> { node };
+
+                    if (node.SpouseId.HasValue)
+                    {
+                        var spouse = nodesInGen.FirstOrDefault(n => n.PersonId == node.SpouseId.Value);
+                        if (spouse != null && !used.Contains(spouse.PersonId))
+                        {
+                            family.Add(spouse);
+                            used.Add(spouse.PersonId);
+                        }
+                    }
+
+                    familiesInGen.Add(family);
+                    used.Add(node.PersonId);
+                }
+
+                int currentX = startX;
 
                 foreach (var family in familiesInGen)
                 {
@@ -349,24 +402,15 @@ namespace Genealogy.Pages
                     {
                         var person1 = family[0];
                         var person2 = family[1];
+                        var sorted = family.OrderBy(f => f.Person.BirthDate).ToList();
+                        person1 = sorted[0];
+                        person2 = sorted[1];
 
-                        if (person1.Person.BirthDate > person2.Person.BirthDate)
-                        {
-                            person2.X = currentX;
-                            person1.X = currentX + 140;
-                            person2.Y = startY + genLevel * verticalSpacing;
-                            person1.Y = startY + genLevel * verticalSpacing;
-                        }
-                        else
-                        {
-                            person1.X = currentX;
-                            person2.X = currentX + 140;
-                            person1.Y = startY + genLevel * verticalSpacing;
-                            person2.Y = startY + genLevel * verticalSpacing;
-                        }
-
-                        person1.IsPlaced = true;
-                        person2.IsPlaced = true;
+                        person1.X = currentX;
+                        person2.X = currentX + 140;
+                        double yPos = startY + genLevel * verticalSpacing;
+                        person1.Y = yPos;
+                        person2.Y = yPos;
                         currentX += 280;
                     }
                     else if (family.Count == 1)
@@ -374,7 +418,6 @@ namespace Genealogy.Pages
                         var person = family[0];
                         person.X = currentX + 70;
                         person.Y = startY + genLevel * verticalSpacing;
-                        person.IsPlaced = true;
                         currentX += 200;
                     }
                 }
@@ -387,17 +430,17 @@ namespace Genealogy.Pages
                     var children = node.Children
                         .Where(id => familyTree.ContainsKey(id))
                         .Select(id => familyTree[id])
+                        .Where(c => c.X > 0)
                         .ToList();
 
                     if (children.Any())
                     {
-                        double minX = children.Min(c => c.X);
-                        double maxX = children.Max(c => c.X);
-                        double centerX = (minX + maxX) / 2;
+                        double minChildX = children.Min(c => c.X);
+                        double maxChildX = children.Max(c => c.X);
+                        double centerX = (minChildX + maxChildX) / 2;
 
-                        if (node.SpouseId.HasValue && familyTree.ContainsKey(node.SpouseId.Value))
+                        if (node.SpouseId.HasValue && familyTree.TryGetValue(node.SpouseId.Value, out var spouse))
                         {
-                            var spouse = familyTree[node.SpouseId.Value];
                             double parentCenterX = (node.X + spouse.X) / 2;
                             double offset = centerX - parentCenterX;
                             node.X += offset;
@@ -411,81 +454,74 @@ namespace Genealogy.Pages
                     }
                 }
             }
-        }
 
-        private List<List<FamilyNode>> GroupIntoFamilies(List<FamilyNode> nodes)
-        {
-            var families = new List<List<FamilyNode>>();
-            var used = new HashSet<int>();
-
-            foreach (var node in nodes)
+            foreach (var genGroup in generations)
             {
-                if (used.Contains(node.PersonId)) continue;
+                var nodesInGen = genGroup.ToList();
+                double minSpacing = 140;
 
-                var family = new List<FamilyNode> { node };
-
-                if (node.SpouseId.HasValue)
+                for (int i = 0; i < nodesInGen.Count - 1; i++)
                 {
-                    var spouse = nodes.FirstOrDefault(n => n.PersonId == node.SpouseId.Value);
-                    if (spouse != null && !used.Contains(spouse.PersonId))
+                    for (int j = i + 1; j < nodesInGen.Count; j++)
                     {
-                        family.Add(spouse);
-                        used.Add(spouse.PersonId);
+                        double distance = Math.Abs(nodesInGen[i].X - nodesInGen[j].X);
+                        if (distance < minSpacing && distance > 0)
+                        {
+                            double shift = (minSpacing - distance) / 2;
+                            nodesInGen[i].X -= shift;
+                            nodesInGen[j].X += shift;
+                        }
                     }
                 }
-
-                families.Add(family);
-                used.Add(node.PersonId);
             }
 
-            return families;
+            double overallMinX = familyTree.Values.Min(n => n.X);
+            if (overallMinX < 100)
+            {
+                double shiftAmount = 100 - overallMinX;
+                foreach (var node in familyTree.Values)
+                {
+                    node.X += shiftAmount;
+                }
+            }
         }
 
         private void DrawAllRelationships()
         {
             if (treeCanvas == null) return;
 
-            foreach (var rel in allRelationships.Where(r => r.RelationshipType == 1))
+            foreach (var rel in allRelationships)
             {
-                DrawRelationshipLine(rel);
+                if (!familyTree.ContainsKey(rel.Person1Id) || !familyTree.ContainsKey(rel.Person2Id))
+                    continue;
+
+                var person1 = familyTree[rel.Person1Id];
+                var person2 = familyTree[rel.Person2Id];
+
+                // Используем актуальные координаты из familyTree
+                Point p1 = new Point(person1.X + 60, person1.Y + 30);
+                Point p2 = new Point(person2.X + 60, person2.Y + 30);
+
+                var line = new Line
+                {
+                    X1 = p1.X,
+                    Y1 = p1.Y,
+                    X2 = p2.X,
+                    Y2 = p2.Y,
+                    Stroke = GetLineColor(rel.RelationshipType),
+                    StrokeThickness = rel.RelationshipType == 2 ? 3 : 2,
+                    Opacity = 0.7,
+                    Tag = $"line_{rel.Person1Id}_{rel.Person2Id}"
+                };
+
+                if (rel.RelationshipType == 1)
+                {
+                    line.StrokeDashArray = new DoubleCollection { 2, 2 };
+                }
+
+                Canvas.SetZIndex(line, 0);
+                treeCanvas.Children.Add(line);
             }
-
-            foreach (var rel in allRelationships.Where(r => r.RelationshipType == 2))
-            {
-                DrawRelationshipLine(rel);
-            }
-        }
-
-        private void DrawRelationshipLine(Relationships rel)
-        {
-            if (!familyTree.ContainsKey(rel.Person1Id) || !familyTree.ContainsKey(rel.Person2Id))
-                return;
-
-            var person1 = familyTree[rel.Person1Id];
-            var person2 = familyTree[rel.Person2Id];
-
-            Point p1 = new Point(person1.X + 60, person1.Y + 30);
-            Point p2 = new Point(person2.X + 60, person2.Y + 30);
-
-            var line = new Line
-            {
-                X1 = p1.X,
-                Y1 = p1.Y,
-                X2 = p2.X,
-                Y2 = p2.Y,
-                Stroke = GetLineColor(rel.RelationshipType),
-                StrokeThickness = rel.RelationshipType == 2 ? 3 : 2,
-                Opacity = 0.7,
-                Tag = $"line_{rel.Person1Id}_{rel.Person2Id}"
-            };
-
-            if (rel.RelationshipType == 1)
-            {
-                line.StrokeDashArray = new DoubleCollection { 2, 2 };
-            }
-
-            Canvas.SetZIndex(line, 0);
-            treeCanvas.Children.Add(line);
         }
 
         private Brush GetLineColor(int type)
@@ -498,7 +534,9 @@ namespace Genealogy.Pages
                 return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B7E6B"));
         }
 
-        private void DrawPersonButtons()
+        // ==================== ОТРИСОВКА КАРТОЧЕК ПЕРСОН ====================
+
+        private void DrawPersonCards()
         {
             if (treeCanvas == null) return;
 
@@ -520,327 +558,75 @@ namespace Genealogy.Pages
                 if (!string.IsNullOrEmpty(deathYear))
                     dateInfo += $" - {deathYear}";
 
-                var btn = new Button
+                // Создаем Border как контейнер для карточки персоны
+                var cardBorder = new Border
                 {
-                    Content = $"{person.FirstName} {person.LastName}\n{genderSymbol} {dateInfo}",
                     Width = 120,
-                    Height = 60,
+                    Height = 80,
                     Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0")),
                     BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B7A48B")),
-                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5C4E3D")),
-                    FontWeight = FontWeights.SemiBold,
-                    Padding = new Thickness(5),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(5),
                     Tag = person.Id,
-                    ToolTip = $"{person.LastName} {person.FirstName} {person.Patronymic}\n" +
-                             $"Родился: {person.BirthDate?.ToString("dd.MM.yyyy") ?? "неизвестно"}"
+                    Cursor = Cursors.Hand
                 };
 
-                btn.Click += PersonButton_Click;
-                btn.MouseRightButtonDown += PersonButton_RightClick;
-                btn.MouseLeftButtonDown += PersonButton_MouseLeftButtonDown;
-                btn.MouseLeftButtonUp += PersonButton_MouseLeftButtonUp;
-                btn.MouseMove += PersonButton_MouseMove;
+                // Создаем Grid для внутреннего содержимого
+                var grid = new Grid();
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-                Canvas.SetLeft(btn, pos.X);
-                Canvas.SetTop(btn, pos.Y);
-                Canvas.SetZIndex(btn, 1);
-
-                treeCanvas.Children.Add(btn);
-                personButtons[person.Id] = btn;
-            }
-        }
-
-        // ==================== ФИЛЬТРАЦИЯ ====================
-
-        private void Filter_Changed(object sender, SelectionChangedEventArgs e)
-        {
-            if (!isPageLoaded || treeCanvas == null || personButtons == null || !personButtons.Any()) return;
-
-            if (cmbFilter.SelectedItem == null) return;
-
-            string selectedFilter = (cmbFilter.SelectedItem as ComboBoxItem)?.Content.ToString();
-
-            switch (selectedFilter)
-            {
-                case "Все поколения":
-                    currentGenerationFilter = null;
-                    ShowAllGenerations();
-                    break;
-                case "Поколение 1":
-                    currentGenerationFilter = 0;
-                    ApplyGenerationFilter(0);
-                    break;
-                case "Поколение 2":
-                    currentGenerationFilter = 1;
-                    ApplyGenerationFilter(1);
-                    break;
-                case "Поколение 3":
-                    currentGenerationFilter = 2;
-                    ApplyGenerationFilter(2);
-                    break;
-                case "Поколение 4":
-                    currentGenerationFilter = 3;
-                    ApplyGenerationFilter(3);
-                    break;
-            }
-        }
-
-        private void ShowAllGenerations()
-        {
-            if (treeCanvas == null) return;
-
-            foreach (var btn in personButtons.Values)
-                if (btn != null) btn.Visibility = Visibility.Visible;
-
-            foreach (var child in treeCanvas.Children)
-                if (child is Line line) line.Visibility = Visibility.Visible;
-        }
-
-        private void ApplyGenerationFilter(int generationLevel)
-        {
-            if (treeCanvas == null || familyTree == null || !familyTree.Any() || personButtons == null) return;
-
-            var personIdsInGeneration = familyTree.Values
-                .Where(n => n.Generation == generationLevel)
-                .Select(n => n.PersonId)
-                .ToHashSet();
-
-            foreach (var btn in personButtons.Values)
-                if (btn != null) btn.Visibility = Visibility.Collapsed;
-
-            foreach (var personId in personIdsInGeneration)
-                if (personButtons.ContainsKey(personId) && personButtons[personId] != null)
-                    personButtons[personId].Visibility = Visibility.Visible;
-
-            foreach (var child in treeCanvas.Children)
-            {
-                if (child is Line line)
+                // Текст с информацией
+                var textBlock = new TextBlock
                 {
-                    if (line.Tag != null)
-                    {
-                        string tag = line.Tag.ToString();
-                        var parts = tag.Split('_');
-                        if (parts.Length == 3 && parts[0] == "line")
-                        {
-                            int id1 = int.Parse(parts[1]);
-                            int id2 = int.Parse(parts[2]);
-                            line.Visibility = (personIdsInGeneration.Contains(id1) && personIdsInGeneration.Contains(id2))
-                                ? Visibility.Visible : Visibility.Collapsed;
-                        }
-                    }
-                    else
-                    {
-                        line.Visibility = Visibility.Collapsed;
-                    }
-                }
-            }
-        }
+                    Text = $"{person.FirstName} {person.LastName}\n{genderSymbol} {dateInfo}",
+                    FontSize = 11,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5C4E3D")),
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(5)
+                };
+                Grid.SetRow(textBlock, 0);
+                grid.Children.Add(textBlock);
 
-        // ==================== ПОИСК ====================
-
-        private void SearchTimer_Tick(object sender, EventArgs e)
-        {
-            searchTimer.Stop();
-            PerformSearch();
-        }
-
-        private void txtSearch_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (btnClearSearch == null) return;
-
-            if (txtSearch.Text != "Поиск..." && !string.IsNullOrWhiteSpace(txtSearch.Text))
-            {
-                btnClearSearch.Visibility = Visibility.Visible;
-                searchTimer.Stop();
-                searchTimer.Start();
-            }
-            else
-            {
-                btnClearSearch.Visibility = Visibility.Collapsed;
-                searchTimer.Stop();
-                ClearSearchHighlight();
-                currentSearchText = "";
-                txtSearch.ToolTip = null;
-                HideNoResultsNotification();
-            }
-        }
-
-        private void ClearSearch_Click(object sender, RoutedEventArgs e)
-        {
-            txtSearch.Text = "Поиск...";
-            searchTimer.Stop();
-            ClearSearchHighlight();
-            currentSearchText = "";
-            txtSearch.ToolTip = null;
-            btnClearSearch.Visibility = Visibility.Collapsed;
-            HideNoResultsNotification();
-        }
-
-        private void PerformSearch()
-        {
-            string searchText = txtSearch.Text.Trim();
-
-            if (string.IsNullOrWhiteSpace(searchText) || searchText == "Поиск...")
-            {
-                ClearSearchHighlight();
-                currentSearchText = "";
-                txtSearch.ToolTip = null;
-                HideNoResultsNotification();
-                return;
-            }
-
-            currentSearchText = searchText.ToLower();
-
-            var matchingPersons = allPersons.Where(p =>
-                (p.LastName?.ToLower().Contains(currentSearchText) ?? false) ||
-                (p.FirstName?.ToLower().Contains(currentSearchText) ?? false) ||
-                (p.Patronymic?.ToLower().Contains(currentSearchText) ?? false)
-            ).ToList();
-
-            foreach (var button in personButtons.Values)
-            {
-                if (button != null)
+                // Кнопка выбора (под текстом)
+                var selectButton = new Button
                 {
-                    button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0"));
-                    button.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B7A48B"));
-                    button.BorderThickness = new Thickness(1);
-                }
-            }
+                    Content = "Выбрать",
+                    Width = 80,
+                    Height = 22,
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8FAA7A")),
+                    Foreground = Brushes.White,
+                    BorderThickness = new Thickness(0),
+                    FontSize = 10,
+                    Tag = person.Id,
+                    Cursor = Cursors.Hand,
+                    Margin = new Thickness(0, 0, 0, 5)
+                };
+                selectButton.Click += PersonSelect_Click;
+                Grid.SetRow(selectButton, 1);
+                grid.Children.Add(selectButton);
 
-            if (matchingPersons.Any())
-            {
-                foreach (var person in matchingPersons)
-                {
-                    if (personButtons.ContainsKey(person.Id) && personButtons[person.Id] != null)
-                    {
-                        var btn = personButtons[person.Id];
-                        btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFD700"));
-                        btn.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF8C00"));
-                        btn.BorderThickness = new Thickness(2);
-                    }
-                }
+                cardBorder.Child = grid;
 
-                txtSearch.ToolTip = $"Найдено: {matchingPersons.Count}";
-                HideNoResultsNotification();
+                // Обработчики для перетаскивания на самом Border
+                cardBorder.MouseLeftButtonDown += PersonBorder_MouseLeftButtonDown;
+                cardBorder.MouseLeftButtonUp += PersonBorder_MouseLeftButtonUp;
+                cardBorder.MouseMove += PersonBorder_MouseMove;
 
-                if (matchingPersons.Count == 1)
-                {
-                    var personId = matchingPersons.First().Id;
-                    selectedPersonId = personId;
-                    ShowPersonDetails(personId);
-                }
-            }
-            else
-            {
-                txtSearch.ToolTip = "Ничего не найдено";
-                ShowNoResultsNotification(searchText);
+                Canvas.SetLeft(cardBorder, pos.X);
+                Canvas.SetTop(cardBorder, pos.Y);
+                Canvas.SetZIndex(cardBorder, 1);
+
+                treeCanvas.Children.Add(cardBorder);
+                personCards[person.Id] = cardBorder;
             }
         }
 
-        private void ShowNoResultsNotification(string searchText)
-        {
-            if (treeCanvas == null) return;
+        // ==================== ПЕРЕТАСКИВАНИЕ КАРТОЧЕК ====================
 
-            HideNoResultsNotification();
-
-            Border notificationBorder = new Border
-            {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0")),
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B7A48B")),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(20),
-                Width = 300,
-                Height = 100,
-                Tag = "notification"
-            };
-
-            notificationBorder.Effect = new System.Windows.Media.Effects.DropShadowEffect
-            {
-                BlurRadius = 10,
-                Opacity = 0.2,
-                ShadowDepth = 3,
-                Color = (Color)ColorConverter.ConvertFromString("#5C4E3D")
-            };
-
-            StackPanel stackPanel = new StackPanel
-            {
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            TextBlock titleText = new TextBlock
-            {
-                Text = "😕 Ничего не найдено",
-                FontSize = 16,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5C4E3D")),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 5)
-            };
-
-            TextBlock messageText = new TextBlock
-            {
-                Text = $"По запросу \"{searchText}\" ничего не найдено",
-                FontSize = 12,
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B7E6B")),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                TextWrapping = TextWrapping.Wrap,
-                TextAlignment = TextAlignment.Center
-            };
-
-            stackPanel.Children.Add(titleText);
-            stackPanel.Children.Add(messageText);
-            notificationBorder.Child = stackPanel;
-
-            Canvas.SetLeft(notificationBorder, (treeCanvas.Width - notificationBorder.Width) / 2);
-            Canvas.SetTop(notificationBorder, (treeCanvas.Height - notificationBorder.Height) / 2);
-            Canvas.SetZIndex(notificationBorder, 100);
-
-            treeCanvas.Children.Add(notificationBorder);
-
-            var hideTimer = new System.Windows.Threading.DispatcherTimer();
-            hideTimer.Interval = TimeSpan.FromSeconds(3);
-            hideTimer.Tick += (s, args) =>
-            {
-                hideTimer.Stop();
-                HideNoResultsNotification();
-            };
-            hideTimer.Start();
-        }
-
-        private void HideNoResultsNotification()
-        {
-            if (treeCanvas == null) return;
-
-            var notificationToRemove = treeCanvas.Children.OfType<Border>()
-                .FirstOrDefault(b => b.Tag?.ToString() == "notification");
-
-            if (notificationToRemove != null)
-            {
-                treeCanvas.Children.Remove(notificationToRemove);
-            }
-        }
-
-        private void ClearSearchHighlight()
-        {
-            if (personButtons == null) return;
-
-            foreach (var button in personButtons.Values)
-            {
-                if (button != null)
-                {
-                    button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0"));
-                    button.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B7A48B"));
-                    button.BorderThickness = new Thickness(1);
-                }
-            }
-            HideNoResultsNotification();
-        }
-
-        // ==================== ПЕРЕТАСКИВАНИЕ ====================
-
-        private void PersonButton_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void PersonBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (Session.IsGuest || !(Session.IsAdmin || Session.IsEditor))
             {
@@ -848,26 +634,26 @@ namespace Genealogy.Pages
                 return;
             }
 
-            var btn = sender as Button;
-            if (btn == null) return;
+            var border = sender as Border;
+            if (border == null) return;
 
             isDragging = true;
-            draggedButton = btn;
+            draggedCard = border;
             dragStartPoint = e.GetPosition(treeCanvas);
-            Canvas.SetZIndex(draggedButton, 10);
-            btn.CaptureMouse();
+            Canvas.SetZIndex(draggedCard, 10);
+            border.CaptureMouse();
             e.Handled = true;
         }
 
-        private void PersonButton_MouseMove(object sender, MouseEventArgs e)
+        private void PersonBorder_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!isDragging || draggedButton == null) return;
+            if (!isDragging || draggedCard == null) return;
             if (e.LeftButton != MouseButtonState.Pressed)
             {
                 isDragging = false;
-                draggedButton.ReleaseMouseCapture();
-                Canvas.SetZIndex(draggedButton, 1);
-                draggedButton = null;
+                draggedCard.ReleaseMouseCapture();
+                Canvas.SetZIndex(draggedCard, 1);
+                draggedCard = null;
                 return;
             }
 
@@ -875,153 +661,83 @@ namespace Genealogy.Pages
             double offsetX = currentPos.X - dragStartPoint.X;
             double offsetY = currentPos.Y - dragStartPoint.Y;
 
-            double newLeft = Canvas.GetLeft(draggedButton) + offsetX;
-            double newTop = Canvas.GetTop(draggedButton) + offsetY;
+            double newLeft = Canvas.GetLeft(draggedCard) + offsetX;
+            double newTop = Canvas.GetTop(draggedCard) + offsetY;
 
-            newLeft = Math.Max(0, Math.Min(treeCanvas.Width - draggedButton.Width, newLeft));
-            newTop = Math.Max(0, Math.Min(treeCanvas.Height - draggedButton.Height, newTop));
+            newLeft = Math.Max(0, Math.Min(treeCanvas.Width - draggedCard.Width, newLeft));
+            newTop = Math.Max(0, Math.Min(treeCanvas.Height - draggedCard.Height, newTop));
 
-            Canvas.SetLeft(draggedButton, newLeft);
-            Canvas.SetTop(draggedButton, newTop);
+            Canvas.SetLeft(draggedCard, newLeft);
+            Canvas.SetTop(draggedCard, newTop);
             dragStartPoint = currentPos;
             e.Handled = true;
         }
 
-        private void PersonButton_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        private void PersonBorder_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (!isDragging || draggedButton == null) return;
+            if (!isDragging || draggedCard == null) return;
 
-            if (draggedButton.Tag is int personId && familyTree.ContainsKey(personId))
+            if (draggedCard.Tag is int personId && familyTree.ContainsKey(personId))
             {
-                familyTree[personId].X = Canvas.GetLeft(draggedButton);
-                familyTree[personId].Y = Canvas.GetTop(draggedButton);
+                // Сохраняем новые координаты
+                familyTree[personId].X = Canvas.GetLeft(draggedCard);
+                familyTree[personId].Y = Canvas.GetTop(draggedCard);
+
+                // ПЕРЕРИСОВЫВАЕМ ЛИНИИ
+                RedrawAllLines();
             }
 
-            Canvas.SetZIndex(draggedButton, 1);
+            Canvas.SetZIndex(draggedCard, 1);
             isDragging = false;
-            draggedButton.ReleaseMouseCapture();
-            draggedButton = null;
+            draggedCard.ReleaseMouseCapture();
+            draggedCard = null;
             e.Handled = true;
         }
 
-        private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        // ==================== ПЕРЕРИСОВКА ЛИНИЙ ====================
+
+        private void RedrawAllLines()
         {
-            if (e.OriginalSource == treeCanvas)
+            if (treeCanvas == null) return;
+
+            // Удаляем все существующие линии
+            var linesToRemove = treeCanvas.Children.OfType<Line>().ToList();
+            foreach (var line in linesToRemove)
             {
-                isCanvasDragging = true;
-                canvasDragStart = e.GetPosition(this);
-                treeCanvas.CaptureMouse();
-                Mouse.OverrideCursor = Cursors.ScrollAll;
-                e.Handled = true;
+                treeCanvas.Children.Remove(line);
             }
+
+            // Перерисовываем все связи заново
+            DrawAllRelationships();
         }
 
-        private void Canvas_MouseMove(object sender, MouseEventArgs e)
+        // ==================== ВЫБОР ПЕРСОНЫ ====================
+
+        private void PersonSelect_Click(object sender, RoutedEventArgs e)
         {
-            if (isCanvasDragging && parentScrollViewer != null)
-            {
-                Point currentPos = e.GetPosition(this);
-                Vector diff = currentPos - canvasDragStart;
+            var button = sender as Button;
+            if (button?.Tag == null) return;
 
-                parentScrollViewer.ScrollToHorizontalOffset(parentScrollViewer.HorizontalOffset - diff.X);
-                parentScrollViewer.ScrollToVerticalOffset(parentScrollViewer.VerticalOffset - diff.Y);
-
-                canvasDragStart = currentPos;
-                e.Handled = true;
-            }
-        }
-
-        private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (isCanvasDragging)
-            {
-                isCanvasDragging = false;
-                treeCanvas.ReleaseMouseCapture();
-                Mouse.OverrideCursor = null;
-                e.Handled = true;
-            }
-        }
-
-        private T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                if (child != null && child is T)
-                    return (T)child;
-                else
-                {
-                    var descendant = FindVisualChild<T>(child);
-                    if (descendant != null)
-                        return descendant;
-                }
-            }
-            return null;
-        }
-
-        // ==================== ОБРАБОТЧИКИ КЛИКОВ ====================
-
-        private void PersonButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (isDragging) return;
-
-            var btn = sender as Button;
-            if (btn?.Tag == null) return;
-
-            int personId = (int)btn.Tag;
+            int personId = (int)button.Tag;
             selectedPersonId = personId;
 
-            foreach (var button in personButtons.Values)
-                if (button != null) button.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0"));
+            // Сброс фона всех карточек
+            foreach (var card in personCards.Values)
+            {
+                if (card != null)
+                    card.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0"));
+            }
 
-            btn.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#AFC09A"));
+            // Подсветка выбранной карточки
+            if (personCards.ContainsKey(personId) && personCards[personId] != null)
+            {
+                personCards[personId].Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#AFC09A"));
+            }
+
             ShowPersonDetails(personId);
         }
 
-        private void PersonButton_RightClick(object sender, MouseButtonEventArgs e)
-        {
-            if (Session.IsGuest)
-            {
-                e.Handled = true;
-                return;
-            }
-
-            var btn = sender as Button;
-            if (btn?.Tag == null) return;
-
-            int personId = (int)btn.Tag;
-            selectedPersonId = personId;
-
-            var contextMenu = new ContextMenu();
-
-            if (Session.IsAdmin || Session.IsEditor)
-            {
-                var editItem = new MenuItem { Header = "Редактировать" };
-                editItem.Click += (s, args) => EditPerson(personId);
-                contextMenu.Items.Add(editItem);
-            }
-
-            if (Session.IsAdmin || Session.IsEditor)
-            {
-                var storyItem = new MenuItem { Header = "Добавить историю" };
-                storyItem.Click += (s, args) => AddStory(personId);
-                contextMenu.Items.Add(storyItem);
-            }
-
-            if (Session.IsAdmin)
-            {
-                if (contextMenu.Items.Count > 0) contextMenu.Items.Add(new Separator());
-                var deleteItem = new MenuItem { Header = "Удалить" };
-                deleteItem.Click += (s, args) => DeletePersonWithRelationships(personId);
-                contextMenu.Items.Add(deleteItem);
-            }
-
-            if (contextMenu.Items.Count > 0)
-            {
-                btn.ContextMenu = contextMenu;
-                contextMenu.IsOpen = true;
-            }
-        }
+        // ==================== ОСТАЛЬНЫЕ МЕТОДЫ (БЕЗ ИЗМЕНЕНИЙ) ====================
 
         private void ShowPersonDetails(int personId)
         {
@@ -1131,6 +847,344 @@ namespace Genealogy.Pages
             {
                 MessageBox.Show($"Ошибка загрузки данных: {ex.Message}");
             }
+        }
+
+        // ==================== ФИЛЬТРАЦИЯ ====================
+
+        private void Filter_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (!isPageLoaded || treeCanvas == null || personCards == null || !personCards.Any()) return;
+
+            if (cmbFilter.SelectedItem == null) return;
+
+            string selectedFilter = (cmbFilter.SelectedItem as ComboBoxItem)?.Content.ToString();
+
+            switch (selectedFilter)
+            {
+                case "Все поколения":
+                    currentGenerationFilter = null;
+                    ShowAllGenerations();
+                    break;
+                case "Поколение 1":
+                    currentGenerationFilter = 0;
+                    ApplyGenerationFilter(0);
+                    break;
+                case "Поколение 2":
+                    currentGenerationFilter = 1;
+                    ApplyGenerationFilter(1);
+                    break;
+                case "Поколение 3":
+                    currentGenerationFilter = 2;
+                    ApplyGenerationFilter(2);
+                    break;
+                case "Поколение 4":
+                    currentGenerationFilter = 3;
+                    ApplyGenerationFilter(3);
+                    break;
+            }
+        }
+
+        private void ShowAllGenerations()
+        {
+            if (treeCanvas == null) return;
+
+            foreach (var card in personCards.Values)
+                if (card != null) card.Visibility = Visibility.Visible;
+
+            foreach (var child in treeCanvas.Children)
+                if (child is Line line) line.Visibility = Visibility.Visible;
+        }
+
+        private void ApplyGenerationFilter(int generationLevel)
+        {
+            if (treeCanvas == null || familyTree == null || !familyTree.Any() || personCards == null) return;
+
+            var personIdsInGeneration = familyTree.Values
+                .Where(n => n.Generation == generationLevel)
+                .Select(n => n.PersonId)
+                .ToHashSet();
+
+            foreach (var card in personCards.Values)
+                if (card != null) card.Visibility = Visibility.Collapsed;
+
+            foreach (var personId in personIdsInGeneration)
+                if (personCards.ContainsKey(personId) && personCards[personId] != null)
+                    personCards[personId].Visibility = Visibility.Visible;
+
+            foreach (var child in treeCanvas.Children)
+            {
+                if (child is Line line && line.Tag != null)
+                {
+                    string tag = line.Tag.ToString();
+                    var parts = tag.Split('_');
+                    if (parts.Length == 3 && parts[0] == "line")
+                    {
+                        int id1 = int.Parse(parts[1]);
+                        int id2 = int.Parse(parts[2]);
+                        line.Visibility = (personIdsInGeneration.Contains(id1) && personIdsInGeneration.Contains(id2))
+                            ? Visibility.Visible : Visibility.Collapsed;
+                    }
+                }
+            }
+        }
+
+        // ==================== ПОИСК ====================
+
+        private void SearchTimer_Tick(object sender, EventArgs e)
+        {
+            searchTimer.Stop();
+            PerformSearch();
+        }
+
+        private void txtSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (btnClearSearch == null) return;
+
+            if (txtSearch.Text != "Поиск..." && !string.IsNullOrWhiteSpace(txtSearch.Text))
+            {
+                btnClearSearch.Visibility = Visibility.Visible;
+                searchTimer.Stop();
+                searchTimer.Start();
+            }
+            else
+            {
+                btnClearSearch.Visibility = Visibility.Collapsed;
+                searchTimer.Stop();
+                ClearSearchHighlight();
+                currentSearchText = "";
+                txtSearch.ToolTip = null;
+                HideNoResultsNotification();
+            }
+        }
+
+        private void ClearSearch_Click(object sender, RoutedEventArgs e)
+        {
+            txtSearch.Text = "Поиск...";
+            searchTimer.Stop();
+            ClearSearchHighlight();
+            currentSearchText = "";
+            txtSearch.ToolTip = null;
+            btnClearSearch.Visibility = Visibility.Collapsed;
+            HideNoResultsNotification();
+        }
+
+        private void PerformSearch()
+        {
+            string searchText = txtSearch.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(searchText) || searchText == "Поиск...")
+            {
+                ClearSearchHighlight();
+                currentSearchText = "";
+                txtSearch.ToolTip = null;
+                HideNoResultsNotification();
+                return;
+            }
+
+            currentSearchText = searchText.ToLower();
+
+            var matchingPersons = allPersons.Where(p =>
+                (p.LastName?.ToLower().Contains(currentSearchText) ?? false) ||
+                (p.FirstName?.ToLower().Contains(currentSearchText) ?? false) ||
+                (p.Patronymic?.ToLower().Contains(currentSearchText) ?? false)
+            ).ToList();
+
+            foreach (var card in personCards.Values)
+            {
+                if (card != null)
+                {
+                    card.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0"));
+                    card.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B7A48B"));
+                    card.BorderThickness = new Thickness(1);
+                }
+            }
+
+            if (matchingPersons.Any())
+            {
+                foreach (var person in matchingPersons)
+                {
+                    if (personCards.ContainsKey(person.Id) && personCards[person.Id] != null)
+                    {
+                        var card = personCards[person.Id];
+                        card.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFD700"));
+                        card.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF8C00"));
+                        card.BorderThickness = new Thickness(2);
+                    }
+                }
+
+                txtSearch.ToolTip = $"Найдено: {matchingPersons.Count}";
+                HideNoResultsNotification();
+
+                if (matchingPersons.Count == 1)
+                {
+                    var personId = matchingPersons.First().Id;
+                    selectedPersonId = personId;
+                    ShowPersonDetails(personId);
+                }
+            }
+            else
+            {
+                txtSearch.ToolTip = "Ничего не найдено";
+                ShowNoResultsNotification(searchText);
+            }
+        }
+
+        private void ShowNoResultsNotification(string searchText)
+        {
+            if (treeCanvas == null) return;
+
+            HideNoResultsNotification();
+
+            Border notificationBorder = new Border
+            {
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0")),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B7A48B")),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(20),
+                Width = 300,
+                Height = 100,
+                Tag = "notification"
+            };
+
+            notificationBorder.Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                BlurRadius = 10,
+                Opacity = 0.2,
+                ShadowDepth = 3,
+                Color = (Color)ColorConverter.ConvertFromString("#5C4E3D")
+            };
+
+            StackPanel stackPanel = new StackPanel
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            TextBlock titleText = new TextBlock
+            {
+                Text = "😕 Ничего не найдено",
+                FontSize = 16,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5C4E3D")),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 5)
+            };
+
+            TextBlock messageText = new TextBlock
+            {
+                Text = $"По запросу \"{searchText}\" ничего не найдено",
+                FontSize = 12,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B7E6B")),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                TextAlignment = TextAlignment.Center
+            };
+
+            stackPanel.Children.Add(titleText);
+            stackPanel.Children.Add(messageText);
+            notificationBorder.Child = stackPanel;
+
+            Canvas.SetLeft(notificationBorder, (treeCanvas.Width - notificationBorder.Width) / 2);
+            Canvas.SetTop(notificationBorder, (treeCanvas.Height - notificationBorder.Height) / 2);
+            Canvas.SetZIndex(notificationBorder, 100);
+
+            treeCanvas.Children.Add(notificationBorder);
+
+            var hideTimer = new System.Windows.Threading.DispatcherTimer();
+            hideTimer.Interval = TimeSpan.FromSeconds(3);
+            hideTimer.Tick += (s, args) =>
+            {
+                hideTimer.Stop();
+                HideNoResultsNotification();
+            };
+            hideTimer.Start();
+        }
+
+        private void HideNoResultsNotification()
+        {
+            if (treeCanvas == null) return;
+
+            var notificationToRemove = treeCanvas.Children.OfType<Border>()
+                .FirstOrDefault(b => b.Tag?.ToString() == "notification");
+
+            if (notificationToRemove != null)
+            {
+                treeCanvas.Children.Remove(notificationToRemove);
+            }
+        }
+
+        private void ClearSearchHighlight()
+        {
+            if (personCards == null) return;
+
+            foreach (var card in personCards.Values)
+            {
+                if (card != null)
+                {
+                    card.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDF8F0"));
+                    card.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B7A48B"));
+                    card.BorderThickness = new Thickness(1);
+                }
+            }
+            HideNoResultsNotification();
+        }
+
+        // ==================== ПЕРЕТАСКИВАНИЕ КАНВАСА ====================
+
+        private void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource == treeCanvas)
+            {
+                isCanvasDragging = true;
+                canvasDragStart = e.GetPosition(this);
+                treeCanvas.CaptureMouse();
+                Mouse.OverrideCursor = Cursors.ScrollAll;
+                e.Handled = true;
+            }
+        }
+
+        private void Canvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (isCanvasDragging && parentScrollViewer != null)
+            {
+                Point currentPos = e.GetPosition(this);
+                Vector diff = currentPos - canvasDragStart;
+
+                parentScrollViewer.ScrollToHorizontalOffset(parentScrollViewer.HorizontalOffset - diff.X);
+                parentScrollViewer.ScrollToVerticalOffset(parentScrollViewer.VerticalOffset - diff.Y);
+
+                canvasDragStart = currentPos;
+                e.Handled = true;
+            }
+        }
+
+        private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (isCanvasDragging)
+            {
+                isCanvasDragging = false;
+                treeCanvas.ReleaseMouseCapture();
+                Mouse.OverrideCursor = null;
+                e.Handled = true;
+            }
+        }
+
+        private T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child != null && child is T)
+                    return (T)child;
+                else
+                {
+                    var descendant = FindVisualChild<T>(child);
+                    if (descendant != null)
+                        return descendant;
+                }
+            }
+            return null;
         }
 
         private void ShowEmptyMessage()
