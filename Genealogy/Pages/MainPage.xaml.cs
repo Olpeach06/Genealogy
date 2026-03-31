@@ -14,16 +14,6 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Genealogy.Classes;
 using Genealogy.AppData;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Navigation;
-using Genealogy.Classes;
-using Genealogy.AppData;
 
 namespace Genealogy.Pages
 {
