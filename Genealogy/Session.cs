@@ -28,6 +28,8 @@ namespace Genealogy.Classes
         public static bool IsAdmin => RoleId == 1;
         public static bool IsEditor => RoleId == 2 || IsAdmin; // Редактор или админ
         public static bool IsViewer => RoleId == 3;
+        public static int CurrentMode { get; set; } = 1; // 1 - семья, 2 - животноводство
+
 
         // Сброс сессии (выход)
         public static void Clear()
@@ -42,6 +44,7 @@ namespace Genealogy.Classes
             LoginTime = DateTime.MinValue;
             CurrentTreeId = 1;
             IsGuest = false;
+            CurrentMode = 1;
         }
     }
 }
